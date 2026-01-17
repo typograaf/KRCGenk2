@@ -686,45 +686,63 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pattern parameters
-            const cellSize = state.scale;
-            const stepSize = state.step;
+            const stripeSpacing = state.scale; // Distance between stripe starts
+            const stepHeight = state.step;     // Height of each step
             const weightRatio = state.weight / 100;
+            const stripeWidth = stripeSpacing * weightRatio;
 
             // Offset for positioning
-            const offsetX = (state.offsetX / 100) * cellSize;
-            const offsetY = (state.offsetY / 100) * cellSize;
+            const offsetX = (state.offsetX / 100) * stripeSpacing;
+            const offsetY = (state.offsetY / 100) * stripeSpacing;
 
             ctx.fillStyle = '#' + state.primaryColor;
 
-            // Draw parallelogram grid
-            // Each row is offset to create the diagonal pattern
-            const cols = Math.ceil(canvas.width / cellSize) + 4;
-            const rows = Math.ceil(canvas.height / stepSize) + 4;
+            // Calculate how many stripes we need
+            const diagonal = canvas.width + canvas.height;
+            const numStripes = Math.ceil(diagonal / stripeSpacing) + 4;
 
-            for (let row = -2; row < rows; row++) {
-                for (let col = -2; col < cols; col++) {
-                    const y = row * stepSize + offsetY;
-                    const x = col * cellSize + offsetX;
+            // Draw each diagonal stripe with stepped edges
+            for (let i = -numStripes; i < numStripes; i++) {
+                const stripeStartX = i * stripeSpacing + offsetX;
 
-                    // Draw parallelogram (primary color stripe)
-                    // Right edge is shifted UP by stepSize
-                    const stripeWidth = cellSize * weightRatio;
-
-                    ctx.beginPath();
-                    // Bottom-left
-                    ctx.moveTo(x, y + stepSize);
-                    // Top-left
-                    ctx.lineTo(x, y);
-                    // Top-right (shifted up)
-                    ctx.lineTo(x + stripeWidth, y - stepSize);
-                    // Bottom-right (shifted up)
-                    ctx.lineTo(x + stripeWidth, y);
-                    ctx.closePath();
-                    ctx.fill();
-                }
+                drawSteppedStripe(stripeStartX, stripeWidth, stepHeight, offsetY);
             }
 
             scaleCanvasToFit();
+        }
+
+        function drawSteppedStripe(startX, width, stepHeight, offsetY) {
+            const numSteps = Math.ceil((canvas.height + canvas.width) / stepHeight) + 4;
+
+            ctx.beginPath();
+
+            // Draw left edge going down (with steps)
+            for (let step = -numSteps; step <= numSteps; step++) {
+                const y = step * stepHeight + offsetY;
+                const x = startX + step * stepHeight; // Diagonal offset
+
+                if (step === -numSteps) {
+                    ctx.moveTo(x, y);
+                }
+                // Horizontal line (step)
+                ctx.lineTo(x + stepHeight, y);
+                // Vertical line down
+                ctx.lineTo(x + stepHeight, y + stepHeight);
+            }
+
+            // Draw right edge going up (with steps)
+            for (let step = numSteps; step >= -numSteps; step--) {
+                const y = step * stepHeight + offsetY;
+                const x = startX + width + step * stepHeight; // Diagonal offset + stripe width
+
+                // Vertical line up
+                ctx.lineTo(x, y + stepHeight);
+                // Horizontal line (step)
+                ctx.lineTo(x - stepHeight, y + stepHeight);
+            }
+
+            ctx.closePath();
+            ctx.fill();
         }
 
         function init() {
@@ -898,32 +916,45 @@
         }
 
         function generateSVG() {
-            const cellSize = state.scale;
-            const stepSize = state.step;
+            const stripeSpacing = state.scale;
+            const stepHeight = state.step;
             const weightRatio = state.weight / 100;
+            const stripeWidth = stripeSpacing * weightRatio;
 
-            const offsetX = (state.offsetX / 100) * cellSize;
-            const offsetY = (state.offsetY / 100) * cellSize;
+            const offsetX = (state.offsetX / 100) * stripeSpacing;
+            const offsetY = (state.offsetY / 100) * stripeSpacing;
 
-            const cols = Math.ceil(state.canvasWidth / cellSize) + 4;
-            const rows = Math.ceil(state.canvasHeight / stepSize) + 4;
+            const diagonal = state.canvasWidth + state.canvasHeight;
+            const numStripes = Math.ceil(diagonal / stripeSpacing) + 4;
+            const numSteps = Math.ceil(diagonal / stepHeight) + 4;
 
             let paths = '';
 
-            for (let row = -2; row < rows; row++) {
-                for (let col = -2; col < cols; col++) {
-                    const y = row * stepSize + offsetY;
-                    const x = col * cellSize + offsetX;
-                    const stripeWidth = cellSize * weightRatio;
+            for (let i = -numStripes; i < numStripes; i++) {
+                const startX = i * stripeSpacing + offsetX;
+                let pathData = '';
 
-                    // Parallelogram points - right edge shifted UP
-                    const blX = x, blY = y + stepSize;           // bottom-left
-                    const tlX = x, tlY = y;                       // top-left
-                    const trX = x + stripeWidth, trY = y - stepSize; // top-right (shifted up)
-                    const brX = x + stripeWidth, brY = y;         // bottom-right (shifted up)
+                // Left edge going down
+                for (let step = -numSteps; step <= numSteps; step++) {
+                    const y = step * stepHeight + offsetY;
+                    const x = startX + step * stepHeight;
 
-                    paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
+                    if (step === -numSteps) {
+                        pathData += `M ${x},${y} `;
+                    }
+                    pathData += `L ${x + stepHeight},${y} L ${x + stepHeight},${y + stepHeight} `;
                 }
+
+                // Right edge going up
+                for (let step = numSteps; step >= -numSteps; step--) {
+                    const y = step * stepHeight + offsetY;
+                    const x = startX + stripeWidth + step * stepHeight;
+
+                    pathData += `L ${x},${y + stepHeight} L ${x - stepHeight},${y + stepHeight} `;
+                }
+
+                pathData += 'Z';
+                paths += `<path d="${pathData}"/>`;
             }
 
             return `<?xml version="1.0" encoding="UTF-8"?>
