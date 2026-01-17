@@ -562,6 +562,22 @@
                             </button>
                         </div>
                     </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Row Distance</span>
+                            <input type="text" class="slider-value" id="rowDistValue" value="100">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="rowDistSlider" min="50" max="300" value="100">
+                            </div>
+                            <button class="reset-btn" data-reset="rowDist">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -646,6 +662,7 @@
             weight: 50,
             zoom: 100,
             columnDist: 100,
+            rowDist: 100,
             offsetX: 0,
             offsetY: 0
         };
@@ -658,6 +675,7 @@
             weight: 50,
             zoom: 100,
             columnDist: 100,
+            rowDist: 100,
             offsetX: 0,
             offsetY: 0
         };
@@ -690,6 +708,7 @@
             const baseStepSize = 60;  // Base step size at 100% zoom
             const stepSize = baseStepSize * zoomFactor;  // Zoom scales the step size
             const stripeSpacing = state.columnDist * zoomFactor;  // Column distance, also scaled by zoom
+            const rowSpacing = state.rowDist * zoomFactor;  // Row distance, also scaled by zoom
             const weightRatio = state.weight / 100;
 
             // Weight controls the HEIGHT of each parallelogram
@@ -697,12 +716,12 @@
 
             // Offset for positioning
             const offsetX = (state.offsetX / 100) * stripeSpacing;
-            const offsetY = (state.offsetY / 100) * stepSize;
+            const offsetY = (state.offsetY / 100) * rowSpacing;
 
             ctx.fillStyle = '#' + state.primaryColor;
 
             // Calculate grid size needed to cover canvas
-            const rows = Math.ceil(canvas.height / stepSize) + 8;
+            const rows = Math.ceil(canvas.height / rowSpacing) + 8;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Draw parallelograms in diagonal stripes
@@ -710,7 +729,7 @@
                 for (let col = -cols; col < cols; col++) {
                     // Each row shifts RIGHT by stepSize to create diagonal stripes
                     const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * stepSize * 2 + offsetY;
+                    const baseY = row * rowSpacing + offsetY;
 
                     // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
                     ctx.beginPath();
@@ -808,6 +827,24 @@
                 columnDistValue.value = state.columnDist;
             });
 
+            // Row Distance slider
+            const rowDistSlider = document.getElementById('rowDistSlider');
+            const rowDistValue = document.getElementById('rowDistValue');
+            rowDistSlider.addEventListener('input', () => {
+                state.rowDist = parseInt(rowDistSlider.value);
+                rowDistValue.value = state.rowDist;
+                drawPattern();
+            });
+            rowDistValue.addEventListener('change', () => {
+                const val = parseInt(rowDistValue.value);
+                if (!isNaN(val) && val >= 50 && val <= 300) {
+                    state.rowDist = val;
+                    rowDistSlider.value = val;
+                    drawPattern();
+                }
+                rowDistValue.value = state.rowDist;
+            });
+
             // Offset X slider
             const offsetXSlider = document.getElementById('offsetXSlider');
             const offsetXValue = document.getElementById('offsetXValue');
@@ -901,13 +938,14 @@
             const baseStepSize = 60;
             const stepSize = baseStepSize * zoomFactor;
             const stripeSpacing = state.columnDist * zoomFactor;
+            const rowSpacing = state.rowDist * zoomFactor;
             const weightRatio = state.weight / 100;
             const paraHeight = stepSize * 3 * weightRatio;
 
             const offsetX = (state.offsetX / 100) * stripeSpacing;
-            const offsetY = (state.offsetY / 100) * stepSize;
+            const offsetY = (state.offsetY / 100) * rowSpacing;
 
-            const rows = Math.ceil(state.canvasHeight / stepSize) + 8;
+            const rows = Math.ceil(state.canvasHeight / rowSpacing) + 8;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             let paths = '';
@@ -915,7 +953,7 @@
             for (let row = -8; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * stepSize * 2 + offsetY;
+                    const baseY = row * rowSpacing + offsetY;
 
                     // Parallelogram with vertical sides and 45° diagonal
                     const blX = x, blY = baseY + paraHeight;
