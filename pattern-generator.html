@@ -1219,8 +1219,10 @@
                 for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
                     let ring = multiPolygon[ringIdx];
 
-                    // Apply corner rounding
-                    ring = roundPolygonCorners(ring, cornerRadius);
+                    // Apply corner rounding only when not animating (to debug)
+                    if (!state.isAnimating) {
+                        ring = roundPolygonCorners(ring, cornerRadius);
+                    }
 
                     if (ring.length === 0) continue;
 
