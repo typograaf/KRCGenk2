@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRCG Pattern Generator</title>
+    <script src="https://unpkg.com/clipper2-js@1.0.5/dist/clipper2.umd.js"></script>
     <style>
         @font-face {
             font-family: 'ABC Arizona Sans';
@@ -690,69 +691,56 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 25;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Corner radius for fillet
-            const r = Math.max(3, stepSize * 0.1);
+            // Bevel radius (like Cavalry's 30)
+            const bevelRadius = Math.max(4, stepSize * 0.15);
+
+            // Scale factor for Clipper2 (it works with integers)
+            const scale = 100;
 
             ctx.fillStyle = '#' + state.primaryColor;
 
-            // Draw each column as a single zigzag path with rounded corners
+            // Process each column separately for performance
             for (let col = -cols; col < cols; col++) {
-                // Collect vertices for this column's united shape
-                // The shape zigzags: left edge goes up with notches, right edge goes down with notches
+                // Create paths for all parallelograms in this column
+                const paths = [];
 
-                const startRow = -rowsNeeded;
-                const endRow = rowsNeeded;
-
-                // Calculate the base position for this column
-                const colBaseX = col * stripeSpacing + offsetX;
-
-                ctx.beginPath();
-
-                // We'll trace the outline: up the left side, across the top, down the right side, across the bottom
-                // Left side (going up) - zigzag pattern
-                for (let row = startRow; row <= endRow; row++) {
-                    const x = colBaseX + row * stepSize;
+                for (let row = -rowsNeeded; row < rowsNeeded; row++) {
+                    const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
 
-                    // Points for this parallelogram
-                    const leftX = x;
-                    const bottomY = baseY + paraHeight;
-                    const topY = baseY;
-
-                    if (row === startRow) {
-                        // Start point
-                        ctx.moveTo(leftX + r, bottomY);
-                    }
-
-                    // Go up the left edge to the top-left corner
-                    ctx.arcTo(leftX, bottomY, leftX, topY, r);
-                    ctx.arcTo(leftX, topY, leftX + stepSize, topY - stepSize, r);
-
-                    // Diagonal to top-right (peak)
-                    const peakX = leftX + stepSize;
-                    const peakY = topY - stepSize;
-                    ctx.arcTo(peakX, peakY, peakX, peakY + paraHeight, r);
-
-                    // If not the last row, go down to meet the next shape's notch
-                    if (row < endRow) {
-                        const nextX = colBaseX + (row + 1) * stepSize;
-                        const nextBottomY = (row + 1) * effectiveRowSpacing + offsetY + paraHeight;
-                        const notchRightY = nextBottomY - stepSize;
-
-                        // Down the right edge to the notch
-                        ctx.arcTo(peakX, notchRightY, nextX, nextBottomY, r);
-                        // Diagonal into the notch (to next shape's bottom-left going up)
-                        ctx.arcTo(nextX, nextBottomY, nextX, nextBottomY - paraHeight, r);
-                    } else {
-                        // Last row - go down the right edge and close
-                        const brY = peakY + paraHeight;
-                        ctx.arcTo(peakX, brY, leftX, bottomY, r);
-                        ctx.arcTo(leftX, bottomY, leftX, topY, r);
-                    }
+                    // Parallelogram vertices (scaled for Clipper2)
+                    const path = [
+                        { x: Math.round(x * scale), y: Math.round((baseY + paraHeight) * scale) },
+                        { x: Math.round(x * scale), y: Math.round(baseY * scale) },
+                        { x: Math.round((x + stepSize) * scale), y: Math.round((baseY - stepSize) * scale) },
+                        { x: Math.round((x + stepSize) * scale), y: Math.round((baseY - stepSize + paraHeight) * scale) }
+                    ];
+                    paths.push(path);
                 }
 
-                ctx.closePath();
-                ctx.fill();
+                // Union all paths in this column
+                let united = Clipper2.Clipper.Union(paths, [], Clipper2.FillRule.NonZero);
+
+                // Apply round offset (inflate then deflate for rounded corners)
+                if (united.length > 0 && bevelRadius > 0) {
+                    const inflated = Clipper2.Clipper.InflatePaths(united, bevelRadius * scale, Clipper2.JoinType.Round, Clipper2.EndType.Polygon);
+                    united = Clipper2.Clipper.InflatePaths(inflated, -bevelRadius * scale, Clipper2.JoinType.Round, Clipper2.EndType.Polygon);
+                }
+
+                // Draw the result
+                for (const path of united) {
+                    ctx.beginPath();
+                    for (let i = 0; i < path.length; i++) {
+                        const pt = path[i];
+                        if (i === 0) {
+                            ctx.moveTo(pt.x / scale, pt.y / scale);
+                        } else {
+                            ctx.lineTo(pt.x / scale, pt.y / scale);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
             }
 
             scaleCanvasToFit();
