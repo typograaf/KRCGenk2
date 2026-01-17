@@ -692,8 +692,8 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Corner radius for the rounded effect
-            const cornerRadius = Math.max(4, stepSize * 0.08);
+            // Corner radius for the rounded effect (keep small to not close gaps)
+            const cornerRadius = Math.max(2, stepSize * 0.03);
 
             // Create offscreen canvas for the pattern mask
             const offscreen = document.createElement('canvas');
