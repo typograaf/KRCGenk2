@@ -325,6 +325,26 @@
             opacity: 0.6;
         }
 
+        /* Easing graph */
+        .easing-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .easing-container {
+            background: #1a2c62;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #easingCanvas {
+            display: block;
+            width: 100%;
+            height: 80px;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 900px) {
             html, body {
@@ -622,6 +642,54 @@
                 <button class="output-btn" id="exportSVG">SVG</button>
             </div>
         </div>
+
+        <!-- Animation -->
+        <div class="panel">
+            <span class="control-label">Animation</span>
+            <div class="slider-panel">
+                <div class="output-buttons" style="margin-bottom: 12px;">
+                    <button class="output-btn" id="playPauseBtn">Play</button>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Speed</span>
+                        <input type="text" class="slider-value" id="speedValue" value="50%">
+                    </div>
+                    <div class="slider-row">
+                        <div class="slider-track">
+                            <input type="range" class="slider" id="speedSlider" min="1" max="100" value="50">
+                        </div>
+                        <button class="reset-btn" data-reset="speed">
+                            <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span class="slider-label">Stagger</span>
+                        <input type="text" class="slider-value" id="staggerValue" value="20%">
+                    </div>
+                    <div class="slider-row">
+                        <div class="slider-track">
+                            <input type="range" class="slider" id="staggerSlider" min="0" max="100" value="20">
+                        </div>
+                        <button class="reset-btn" data-reset="stagger">
+                            <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="easing-group">
+                    <span class="slider-label">Easing</span>
+                    <div class="easing-container">
+                        <canvas id="easingCanvas" width="176" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
@@ -633,7 +701,9 @@
             weight: 50,
             zoom: 100,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            speed: 50,
+            stagger: 20
         };
 
         const state = {
@@ -644,8 +714,17 @@
             weight: 50,
             zoom: 100,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            speed: 50,
+            stagger: 20,
+            isAnimating: false,
+            animationTime: 0,
+            // Bezier control points for easing (cubic bezier: 0,0 -> p1 -> p2 -> 1,1)
+            easingP1: { x: 0.4, y: 0 },
+            easingP2: { x: 0.2, y: 1 }
         };
+
+        let animationFrameId = null;
 
         function scaleCanvasToFit() {
             const container = document.getElementById('canvas-container');
@@ -660,6 +739,142 @@
 
                 canvas.style.transform = `scale(${scale})`;
             });
+        }
+
+        // Cubic bezier easing function
+        function cubicBezier(t, p1x, p1y, p2x, p2y) {
+            // Find t for x using Newton-Raphson
+            let x = t;
+            for (let i = 0; i < 8; i++) {
+                const currentX = bezierPoint(x, p1x, p2x);
+                const diff = currentX - t;
+                if (Math.abs(diff) < 0.001) break;
+                const derivative = bezierDerivative(x, p1x, p2x);
+                if (Math.abs(derivative) < 0.0001) break;
+                x -= diff / derivative;
+            }
+            return bezierPoint(x, p1y, p2y);
+        }
+
+        function bezierPoint(t, p1, p2) {
+            const c = 3 * p1;
+            const b = 3 * (p2 - p1) - c;
+            const a = 1 - c - b;
+            return ((a * t + b) * t + c) * t;
+        }
+
+        function bezierDerivative(t, p1, p2) {
+            const c = 3 * p1;
+            const b = 3 * (p2 - p1) - c;
+            const a = 1 - c - b;
+            return (3 * a * t + 2 * b) * t + c;
+        }
+
+        // Draw easing curve on the easing canvas
+        function drawEasingCurve() {
+            const easingCanvas = document.getElementById('easingCanvas');
+            const ectx = easingCanvas.getContext('2d');
+            const w = easingCanvas.width;
+            const h = easingCanvas.height;
+            const padding = 10;
+
+            ectx.clearRect(0, 0, w, h);
+
+            // Draw grid
+            ectx.strokeStyle = '#334473';
+            ectx.lineWidth = 1;
+            ectx.beginPath();
+            ectx.moveTo(padding, padding);
+            ectx.lineTo(padding, h - padding);
+            ectx.lineTo(w - padding, h - padding);
+            ectx.stroke();
+
+            // Draw diagonal guide
+            ectx.strokeStyle = '#334473';
+            ectx.setLineDash([4, 4]);
+            ectx.beginPath();
+            ectx.moveTo(padding, h - padding);
+            ectx.lineTo(w - padding, padding);
+            ectx.stroke();
+            ectx.setLineDash([]);
+
+            // Draw bezier curve
+            const graphW = w - 2 * padding;
+            const graphH = h - 2 * padding;
+
+            ectx.strokeStyle = '#82CDFF';
+            ectx.lineWidth = 2;
+            ectx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const t = i / 100;
+                const y = cubicBezier(t, state.easingP1.x, state.easingP1.y, state.easingP2.x, state.easingP2.y);
+                const px = padding + t * graphW;
+                const py = h - padding - y * graphH;
+                if (i === 0) ectx.moveTo(px, py);
+                else ectx.lineTo(px, py);
+            }
+            ectx.stroke();
+
+            // Draw control points
+            const p1x = padding + state.easingP1.x * graphW;
+            const p1y = h - padding - state.easingP1.y * graphH;
+            const p2x = padding + state.easingP2.x * graphW;
+            const p2y = h - padding - state.easingP2.y * graphH;
+
+            // Control point lines
+            ectx.strokeStyle = '#82CDFF';
+            ectx.lineWidth = 1;
+            ectx.globalAlpha = 0.5;
+            ectx.beginPath();
+            ectx.moveTo(padding, h - padding);
+            ectx.lineTo(p1x, p1y);
+            ectx.moveTo(w - padding, padding);
+            ectx.lineTo(p2x, p2y);
+            ectx.stroke();
+            ectx.globalAlpha = 1;
+
+            // Control point circles
+            ectx.fillStyle = '#82CDFF';
+            ectx.beginPath();
+            ectx.arc(p1x, p1y, 5, 0, Math.PI * 2);
+            ectx.fill();
+            ectx.beginPath();
+            ectx.arc(p2x, p2y, 5, 0, Math.PI * 2);
+            ectx.fill();
+        }
+
+        // Animation loop
+        let lastTime = 0;
+        function animate(currentTime) {
+            if (!state.isAnimating) return;
+
+            const deltaTime = lastTime ? (currentTime - lastTime) / 1000 : 0;
+            lastTime = currentTime;
+
+            // Speed controls how fast the animation cycles (1-100 maps to 0.2-3 cycles per second)
+            const cyclesPerSecond = 0.2 + (state.speed / 100) * 2.8;
+            state.animationTime += deltaTime * cyclesPerSecond;
+
+            drawPattern();
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function startAnimation() {
+            if (state.isAnimating) return;
+            state.isAnimating = true;
+            lastTime = 0;
+            document.getElementById('playPauseBtn').textContent = 'Pause';
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function stopAnimation() {
+            state.isAnimating = false;
+            document.getElementById('playPauseBtn').textContent = 'Play';
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
         }
 
         // Helper: round corners of a polygon ring using arc segments
@@ -768,10 +983,38 @@
             // Round to fixed precision to avoid floating point issues in boolean union
             const round = (v) => Math.round(v * 10) / 10;
 
+            // Animation: calculate travel distance (one full cycle moves shapes by effectiveRowSpacing)
+            const travelDistance = Math.abs(effectiveRowSpacing) * 2;
+            const totalCols = cols * 2;
+            const staggerAmount = state.stagger / 100; // 0 to 1
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
+                    // Calculate per-column animation offset
+                    let animY = 0;
+                    if (state.isAnimating || state.animationTime > 0) {
+                        // Normalize column index for stagger calculation
+                        const colIndex = col + cols;
+                        const colProgress = colIndex / totalCols;
+
+                        // Apply stagger: each column starts at a different phase
+                        const staggerDelay = colProgress * staggerAmount;
+                        const colTime = (state.animationTime - staggerDelay) % 1;
+                        const normalizedTime = colTime < 0 ? colTime + 1 : colTime;
+
+                        // Apply easing
+                        const easedProgress = cubicBezier(
+                            normalizedTime,
+                            state.easingP1.x, state.easingP1.y,
+                            state.easingP2.x, state.easingP2.y
+                        );
+
+                        // Move upward
+                        animY = -easedProgress * travelDistance;
+                    }
+
                     const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * effectiveRowSpacing + offsetY;
+                    const baseY = row * effectiveRowSpacing + offsetY + animY;
 
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
@@ -954,13 +1197,13 @@
                         const value = document.getElementById(resetType + 'Value');
                         if (slider) slider.value = defaultValues[resetType];
                         if (value) {
-                            if (resetType === 'weight') {
+                            if (['weight', 'zoom', 'speed', 'stagger'].includes(resetType)) {
                                 value.value = defaultValues[resetType] + '%';
                             } else {
                                 value.value = defaultValues[resetType];
                             }
                         }
-                        drawPattern();
+                        if (!state.isAnimating) drawPattern();
                     }
                 });
             });
@@ -982,6 +1225,112 @@
                 link.href = URL.createObjectURL(blob);
                 link.click();
             });
+
+            // Play/Pause button
+            document.getElementById('playPauseBtn').addEventListener('click', () => {
+                if (state.isAnimating) {
+                    stopAnimation();
+                } else {
+                    startAnimation();
+                }
+            });
+
+            // Speed slider
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            speedSlider.addEventListener('input', () => {
+                state.speed = parseInt(speedSlider.value);
+                speedValue.value = state.speed + '%';
+            });
+            speedValue.addEventListener('change', () => {
+                const val = parseInt(speedValue.value);
+                if (!isNaN(val) && val >= 1 && val <= 100) {
+                    state.speed = val;
+                    speedSlider.value = val;
+                }
+                speedValue.value = state.speed + '%';
+            });
+
+            // Stagger slider
+            const staggerSlider = document.getElementById('staggerSlider');
+            const staggerValue = document.getElementById('staggerValue');
+            staggerSlider.addEventListener('input', () => {
+                state.stagger = parseInt(staggerSlider.value);
+                staggerValue.value = state.stagger + '%';
+            });
+            staggerValue.addEventListener('change', () => {
+                const val = parseInt(staggerValue.value);
+                if (!isNaN(val) && val >= 0 && val <= 100) {
+                    state.stagger = val;
+                    staggerSlider.value = val;
+                }
+                staggerValue.value = state.stagger + '%';
+            });
+
+            // Easing canvas interaction
+            const easingCanvas = document.getElementById('easingCanvas');
+            let draggingPoint = null;
+
+            easingCanvas.addEventListener('mousedown', (e) => {
+                const rect = easingCanvas.getBoundingClientRect();
+                const scaleX = easingCanvas.width / rect.width;
+                const scaleY = easingCanvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                const padding = 10;
+                const graphW = easingCanvas.width - 2 * padding;
+                const graphH = easingCanvas.height - 2 * padding;
+
+                const p1x = padding + state.easingP1.x * graphW;
+                const p1y = easingCanvas.height - padding - state.easingP1.y * graphH;
+                const p2x = padding + state.easingP2.x * graphW;
+                const p2y = easingCanvas.height - padding - state.easingP2.y * graphH;
+
+                const dist1 = Math.sqrt((mx - p1x) ** 2 + (my - p1y) ** 2);
+                const dist2 = Math.sqrt((mx - p2x) ** 2 + (my - p2y) ** 2);
+
+                if (dist1 < 15) draggingPoint = 'p1';
+                else if (dist2 < 15) draggingPoint = 'p2';
+            });
+
+            easingCanvas.addEventListener('mousemove', (e) => {
+                if (!draggingPoint) return;
+
+                const rect = easingCanvas.getBoundingClientRect();
+                const scaleX = easingCanvas.width / rect.width;
+                const scaleY = easingCanvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                const padding = 10;
+                const graphW = easingCanvas.width - 2 * padding;
+                const graphH = easingCanvas.height - 2 * padding;
+
+                const x = Math.max(0, Math.min(1, (mx - padding) / graphW));
+                const y = Math.max(0, Math.min(1, (easingCanvas.height - padding - my) / graphH));
+
+                if (draggingPoint === 'p1') {
+                    state.easingP1.x = x;
+                    state.easingP1.y = y;
+                } else if (draggingPoint === 'p2') {
+                    state.easingP2.x = x;
+                    state.easingP2.y = y;
+                }
+
+                drawEasingCurve();
+            });
+
+            easingCanvas.addEventListener('mouseup', () => {
+                draggingPoint = null;
+            });
+
+            easingCanvas.addEventListener('mouseleave', () => {
+                draggingPoint = null;
+            });
+
+            // Initialize easing curve display
+            drawEasingCurve();
         }
 
         function generateSVG() {
