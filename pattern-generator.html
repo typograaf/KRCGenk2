@@ -1005,12 +1005,9 @@
                 // Time since this column started animating
                 const colTime = Math.max(0, state.animationTime - colDelay);
 
-                // Continuous upward movement - use modulo to wrap within one row spacing
-                // This way shapes exiting top are seamlessly replaced by shapes from below
-                const rawOffset = colTime * travelDistance;
-                const wrappedOffset = rawOffset % travelDistance;
-
-                columnOffsets[col] = -wrappedOffset;
+                // Continuous upward movement - no wrapping needed
+                // Extra rows drawn above/below canvas handle the seamless replacement
+                columnOffsets[col] = -colTime * travelDistance;
             }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
