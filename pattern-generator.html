@@ -1180,6 +1180,12 @@
                     // All shapes in the same visual column get the exact same animation offset
                     const animY = getVisualColumnOffset(visualColIdx);
 
+                    // Check for invalid animation offset
+                    if (!Number.isFinite(animY)) {
+                        console.error('Invalid animY:', animY, 'for visualColIdx:', visualColIdx);
+                        continue;
+                    }
+
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
 
                     // Skip shapes outside visible area
@@ -1203,11 +1209,23 @@
                 // During animation: draw raw shapes (no union, no rounding) to debug
                 ctx.fillStyle = '#' + state.primaryColor;
                 for (const poly of polygons) {
+                    // Validate coordinates
+                    const coords = poly[0];
+                    let valid = true;
+                    for (const pt of coords) {
+                        if (!Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) {
+                            console.error('Invalid polygon coordinates:', coords);
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if (!valid) continue;
+
                     ctx.beginPath();
-                    ctx.moveTo(poly[0][0][0], poly[0][0][1]);
-                    ctx.lineTo(poly[0][1][0], poly[0][1][1]);
-                    ctx.lineTo(poly[0][2][0], poly[0][2][1]);
-                    ctx.lineTo(poly[0][3][0], poly[0][3][1]);
+                    ctx.moveTo(coords[0][0], coords[0][1]);
+                    ctx.lineTo(coords[1][0], coords[1][1]);
+                    ctx.lineTo(coords[2][0], coords[2][1]);
+                    ctx.lineTo(coords[3][0], coords[3][1]);
                     ctx.closePath();
                     ctx.fill();
                 }
