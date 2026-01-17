@@ -713,7 +713,7 @@
                     <div class="easing-container">
                         <canvas id="easingCanvas" width="152" height="152"></canvas>
                     </div>
-                    <input type="text" class="easing-input" id="easingInput" value="0.75, 0.00, 0.25, 1.00">
+                    <input type="text" class="easing-input" id="easingInput" value="0.25, 0.25, 0.75, 0.75">
                 </div>
             </div>
         </div>
@@ -755,8 +755,8 @@
             isAnimating: false,
             animationTime: 0,
             // Bezier control points for easing (cubic bezier: 0,0 -> p1 -> p2 -> 1,1)
-            easingP1: { x: 0.75, y: 0 },
-            easingP2: { x: 0.25, y: 1 }
+            easingP1: { x: 0.25, y: 0.25 },
+            easingP2: { x: 0.75, y: 0.75 }
         };
 
         let animationFrameId = null;
@@ -854,7 +854,6 @@
             easingCtx.stroke();
 
             // Draw the cubic bezier curve
-            easingCtx.lineWidth = 2;
             easingCtx.beginPath();
             easingCtx.moveTo(toCanvasX(0), toCanvasY(0));
             easingCtx.bezierCurveTo(
@@ -865,19 +864,18 @@
             easingCtx.stroke();
 
             // Draw handles
-            const handleRadius = 4;
-            const drawHandle = (x, y, filled = true) => {
+            const handleRadius = 'ontouchstart' in window ? 6 : 3;
+            const drawHandle = (x, y) => {
                 easingCtx.fillStyle = '#82CDFF';
                 easingCtx.beginPath();
                 easingCtx.arc(toCanvasX(x), toCanvasY(y), handleRadius, 0, Math.PI * 2);
-                if (filled) easingCtx.fill();
-                else easingCtx.stroke();
+                easingCtx.fill();
             };
 
             drawHandle(state.easingP1.x, state.easingP1.y);
             drawHandle(state.easingP2.x, state.easingP2.y);
-            drawHandle(0, 0, false);
-            drawHandle(1, 1, false);
+            drawHandle(0, 0);
+            drawHandle(1, 1);
         }
 
         function updateEasingInput() {
