@@ -695,11 +695,11 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-label">Stagger</span>
-                        <input type="text" class="slider-value" id="staggerValue" value="100%">
+                        <input type="text" class="slider-value" id="staggerValue" value="70%">
                     </div>
                     <div class="slider-row">
                         <div class="slider-track">
-                            <input type="range" class="slider" id="staggerSlider" min="0" max="100" value="100">
+                            <input type="range" class="slider" id="staggerSlider" min="0" max="100" value="70">
                         </div>
                         <button class="reset-btn" data-reset="stagger">
                             <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -734,7 +734,7 @@
             offsetX: 0,
             offsetY: 0,
             speed: 50,
-            stagger: 100
+            stagger: 70
         };
 
         const state = {
@@ -747,7 +747,7 @@
             offsetX: 0,
             offsetY: 0,
             speed: 50,
-            stagger: 100,
+            stagger: 70,
             isAnimating: false,
             animationTime: 0,
             // Bezier control points for easing (cubic bezier: 0,0 -> p1 -> p2 -> 1,1)
@@ -1131,8 +1131,8 @@
             // Round to fixed precision to avoid floating point issues in boolean union
             const round = (v) => Math.round(v * 10) / 10;
 
-            // Stagger: phase offset between visual columns (0% = all same, 100% = 10% cycle offset)
-            const maxPhaseOffset = state.stagger / 1000;
+            // Stagger: phase offset between visual columns (0% = all same, 100% = ~14% cycle offset)
+            const maxPhaseOffset = state.stagger / 700;
             // Count visible columns on screen for stagger distribution
             const visibleCols = Math.ceil(canvas.width / stripeSpacing) + 4;
 
