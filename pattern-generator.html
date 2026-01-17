@@ -1152,17 +1152,21 @@
                 const normalizedIdx = visualColIdx / visibleCols;
                 const phaseOffset = normalizedIdx * maxPhaseOffset;
 
-                // Calculate cycle progress with phase offset
-                let cycleProgress = (state.animationTime + phaseOffset) % 1;
+                // Total progress (grows continuously)
+                const totalProgress = state.animationTime + phaseOffset;
+                const completedCycles = Math.floor(totalProgress);
+                const cycleProgress = totalProgress - completedCycles;
 
-                // Apply easing
+                // Apply easing to current cycle progress
                 const easedProgress = cubicBezier(
                     cycleProgress,
                     state.easingP1.x, state.easingP1.y,
                     state.easingP2.x, state.easingP2.y
                 );
 
-                visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
+                // Continuous offset: completed cycles + eased current cycle
+                const totalEased = completedCycles + easedProgress;
+                visualColumnOffsets[visualColIdx] = -totalEased * effectiveRowSpacing;
                 return visualColumnOffsets[visualColIdx];
             }
 
