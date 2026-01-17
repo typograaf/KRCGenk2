@@ -1192,7 +1192,8 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
 
                     // Calculate which VISUAL column this shape belongs to based on X position
-                    const visualColIdx = Math.round(x / stripeSpacing);
+                    // Use floor instead of round for consistent behavior at boundaries
+                    const visualColIdx = Math.floor(x / stripeSpacing);
 
                     // All shapes in the same visual column get the exact same animation offset
                     const animY = getVisualColumnOffset(visualColIdx);
