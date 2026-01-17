@@ -584,7 +584,7 @@
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="zoomSlider" min="25" max="200" value="100">
+                                <input type="range" class="slider" id="zoomSlider" min="25" max="200" value="100" step="5">
                             </div>
                             <button class="reset-btn" data-reset="zoom">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1326,8 +1326,10 @@
                 drawPattern();
             });
             zoomValue.addEventListener('change', () => {
-                const val = parseInt(zoomValue.value);
+                let val = parseInt(zoomValue.value);
                 if (!isNaN(val) && val >= 25 && val <= 200) {
+                    // Snap to nearest 5%
+                    val = Math.round(val / 5) * 5;
                     state.zoom = val;
                     zoomSlider.value = val;
                     drawPattern();
