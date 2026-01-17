@@ -702,20 +702,23 @@
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 4;
 
             // Draw parallelograms row by row
-            // Each parallelogram: top edge is to the RIGHT of bottom edge (creates ↗ diagonal)
+            // Vertical left/right edges, slanted top/bottom edges (creates ↗ diagonal stripes)
             for (let row = -2; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // Top-left position of this parallelogram
-                    // Each row shifts RIGHT by stepHeight to create the diagonal
-                    const topX = col * stripeSpacing + row * stepHeight + offsetX;
-                    const topY = row * stepHeight + offsetY;
+                    // Base position
+                    const baseX = col * stripeSpacing + offsetX;
+                    const baseY = row * stepHeight + offsetY;
 
-                    // Draw parallelogram
+                    // Shift column position based on row to create diagonal alignment
+                    const x = baseX - row * stepHeight;
+
+                    // Draw parallelogram with VERTICAL sides
+                    // Top edge slopes UP to the right, bottom edge slopes UP to the right
                     ctx.beginPath();
-                    ctx.moveTo(topX, topY);                                    // top-left
-                    ctx.lineTo(topX + stripeWidth, topY);                      // top-right
-                    ctx.lineTo(topX + stripeWidth - stepHeight, topY + stepHeight); // bottom-right
-                    ctx.lineTo(topX - stepHeight, topY + stepHeight);          // bottom-left
+                    ctx.moveTo(x, baseY + stepHeight);                         // bottom-left
+                    ctx.lineTo(x, baseY);                                      // top-left (vertical left edge)
+                    ctx.lineTo(x + stripeWidth, baseY - stepHeight);           // top-right (slanted top edge, going UP)
+                    ctx.lineTo(x + stripeWidth, baseY);                        // bottom-right (vertical right edge)
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -910,15 +913,17 @@
 
             for (let row = -2; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    const topX = col * stripeSpacing + row * stepHeight + offsetX;
-                    const topY = row * stepHeight + offsetY;
+                    const baseX = col * stripeSpacing + offsetX;
+                    const baseY = row * stepHeight + offsetY;
+                    const x = baseX - row * stepHeight;
 
-                    const x1 = topX;
-                    const x2 = topX + stripeWidth;
-                    const x3 = topX + stripeWidth - stepHeight;
-                    const x4 = topX - stepHeight;
+                    // Parallelogram with vertical sides
+                    const blX = x, blY = baseY + stepHeight;       // bottom-left
+                    const tlX = x, tlY = baseY;                     // top-left
+                    const trX = x + stripeWidth, trY = baseY - stepHeight; // top-right
+                    const brX = x + stripeWidth, brY = baseY;       // bottom-right
 
-                    paths += `<path d="M ${x1},${topY} L ${x2},${topY} L ${x3},${topY + stepHeight} L ${x4},${topY + stepHeight} Z"/>`;
+                    paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
                 }
             }
 
