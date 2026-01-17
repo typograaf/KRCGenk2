@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRCG Pattern Generator</title>
+    <style>
+        @font-face {
+            font-family: 'ABC Arizona Sans';
+            src: url('Assets/ABC%20Arizona%20Sans/ABCArizonaSans-Regular-Trial.woff2') format('woff2'),
+                 url('Assets/ABC%20Arizona%20Sans/ABCArizonaSans-Regular-Trial.woff') format('woff');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'ABC Arizona Sans';
+            src: url('Assets/ABC%20Arizona%20Sans/ABCArizonaSans-Bold-Trial.woff2') format('woff2'),
+                 url('Assets/ABC%20Arizona%20Sans/ABCArizonaSans-Bold-Trial.woff') format('woff');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'ABC Arizona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #001550;
+            color: #82CDFF;
+            display: flex;
+            gap: 24px;
+            padding: 24px;
+        }
+
+        /* Left Sidebar */
+        .sidebar-left {
+            width: 200px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-shrink: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-left-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Right Sidebar */
+        .sidebar-right {
+            width: 200px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Header/Logo */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-icon {
+            width: 14px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 12px;
+            color: #82cdff;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: #0d2159;
+            border: 1px solid #334473;
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        /* Control Labels */
+        .control-label {
+            font-size: 12px;
+            color: #82CDFF;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        /* Color Swatches */
+        .color-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .color-swatches {
+            display: flex;
+            gap: 6px;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .color-swatch:hover,
+        .color-swatch.active {
+            border-color: #334473;
+        }
+
+        /* Slider Styles */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .slider-label {
+            font-size: 12px;
+            color: #82CDFF;
+        }
+
+        .slider-value {
+            font-size: 8px;
+            font-weight: bold;
+            color: #82CDFF;
+            background: transparent;
+            border: none;
+            text-align: right;
+            width: 50px;
+        }
+
+        .slider-value:focus {
+            outline: none;
+            color: #FFFFFF;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-track {
+            flex: 1;
+            height: 2px;
+            background: #1a2c62;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            -webkit-appearance: none;
+            background: transparent;
+            cursor: pointer;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .slider::-webkit-slider-runnable-track {
+            height: 2px;
+            background: #1a2c62;
+            border-radius: 12px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #82CDFF;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-top: -5px;
+        }
+
+        .reset-btn {
+            width: 16px;
+            height: 16px;
+            background: #1a2c62;
+            border: 1px solid #334473;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .reset-btn:hover {
+            border-color: #82CDFF;
+        }
+
+        .reset-btn svg {
+            width: 7px;
+            height: 9px;
+        }
+
+        /* Canvas Size Buttons */
+        .size-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .size-btn {
+            background: #1a2c62;
+            border: 1px solid #334473;
+            border-radius: 6px;
+            padding: 12px;
+            color: #82CDFF;
+            font-size: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .size-btn:hover {
+            border-color: #82CDFF;
+        }
+
+        .size-btn.active {
+            border-color: #82CDFF;
+            background: #82CDFF;
+            color: #001550;
+        }
+
+        /* Output Buttons */
+        .output-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .output-btn {
+            flex: 1;
+            background: #1a2c62;
+            border: 1px solid #334473;
+            border-radius: 6px;
+            padding: 12px;
+            color: #82CDFF;
+            font-size: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .output-btn:hover {
+            background: #82CDFF;
+            color: #001550;
+        }
+
+        /* Canvas Container */
+        #canvas-container {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background: #001550;
+        }
+
+        #patternCanvas {
+            display: block;
+            transform-origin: center center;
+            border-radius: 12px;
+        }
+
+        /* Branding Footer */
+        .branding {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Multi-slider panels */
+        .slider-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Weight label row */
+        .weight-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .weight-label {
+            font-size: 8px;
+            color: #82CDFF;
+            opacity: 0.6;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            html, body {
+                height: 100%;
+            }
+
+            body {
+                flex-direction: column;
+                padding: 0;
+                gap: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            #canvas-container {
+                width: auto;
+                min-height: 280px;
+                height: 50vh;
+                flex-shrink: 0;
+                order: -1;
+                border-radius: 20px;
+                position: sticky;
+                top: 0;
+                margin: 0;
+                z-index: 200;
+                overflow: visible;
+                background: transparent;
+                pointer-events: none;
+            }
+
+            #patternCanvas {
+                border-radius: 20px;
+                pointer-events: auto;
+            }
+
+            .sidebar-left {
+                width: 100%;
+                height: auto;
+                padding: 0;
+                flex-shrink: 0;
+                margin-top: -25vh;
+                padding-top: calc(50vh - 40px);
+            }
+
+            .sidebar-left-content {
+                gap: 10px;
+                padding: 16px;
+            }
+
+            .sidebar-right {
+                width: 100%;
+                height: auto;
+                padding: 16px;
+                flex-shrink: 0;
+            }
+
+            .branding {
+                margin-top: 16px;
+                padding: 16px;
+            }
+
+            .panel {
+                padding: 10px;
+            }
+
+            .color-section {
+                gap: 16px;
+            }
+
+            .slider-panel {
+                gap: 16px;
+            }
+
+            .size-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .control-label,
+            .slider-label {
+                font-size: 14px;
+            }
+
+            .slider-value {
+                font-size: 12px;
+            }
+
+            .size-btn {
+                font-size: 11px;
+                padding: 14px 12px;
+            }
+
+            .output-btn {
+                font-size: 11px;
+                padding: 14px;
+            }
+
+            .color-swatch {
+                width: 32px;
+                height: 32px;
+            }
+
+            .slider {
+                height: 20px;
+            }
+
+            .slider::-webkit-slider-thumb {
+                width: 18px;
+                height: 18px;
+                margin-top: -8px;
+            }
+
+            .reset-btn {
+                width: 24px;
+                height: 24px;
+            }
+
+            .reset-btn svg {
+                width: 10px;
+                height: 12px;
+            }
+
+            .header-title {
+                font-size: 14px;
+            }
+
+            .header-icon {
+                width: 18px;
+                height: 23px;
+            }
+
+            .weight-labels {
+                margin-top: 12px;
+            }
+
+            .weight-label {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Left Sidebar -->
+    <div class="sidebar-left">
+        <div class="sidebar-left-content">
+            <!-- Header -->
+            <div class="header">
+                <svg class="header-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.71299 17.291C6.14792 17.291 5.31163 16.9181 4.2041 16.1722C3.11917 15.4263 2.14725 14.5109 1.28835 13.426C0.429451 12.3411 0 11.3013 0 10.3068V2.5767C0 2.10205 0.226027 1.77431 0.67808 1.59349C1.44657 1.25445 2.44109 0.904106 3.66163 0.542463C4.90478 0.180821 5.9219 0 6.71299 0C7.50408 0 8.5099 0.180821 9.73045 0.542463C10.9736 0.904106 11.9794 1.25445 12.7479 1.59349C13.2 1.77431 13.426 2.10205 13.426 2.5767V5.9332L10.4763 5.0856V2.5428L11.5274 3.86505C10.6459 3.50341 9.75305 3.19828 8.84894 2.94965C7.94484 2.70102 7.23285 2.5767 6.71299 2.5767C6.19313 2.5767 5.48115 2.70102 4.57704 2.94965C3.67293 3.19828 2.78013 3.50341 1.89862 3.86505L2.94965 2.71232V10.1034C2.94965 10.4424 3.09657 10.8719 3.3904 11.3917C3.70684 11.889 4.12499 12.3863 4.64485 12.8835C5.16471 13.3582 5.71847 13.7311 6.30614 14.0023L6.44176 14.0363C6.55477 14.0815 6.64518 14.1041 6.71299 14.1041C6.7808 14.1041 6.87121 14.0815 6.98422 14.0363L7.11984 14.0023C7.70751 13.7311 8.26127 13.3582 8.78113 12.8835C9.301 12.3863 9.70784 11.889 10.0017 11.3917C10.3181 10.8719 10.4763 10.4424 10.4763 10.1034V8.13696L12.1715 9.89997H6.98422L5.62806 7.25545H13.426V10.3068C13.426 11.3013 12.9965 12.3411 12.1376 13.426C11.2787 14.5109 10.2955 15.4263 9.18798 16.1722C8.10306 16.9181 7.27806 17.291 6.71299 17.291Z" fill="#86D9FF"/>
+                </svg>
+                <span class="header-title">KRCG Pattern Generator</span>
+            </div>
+
+            <!-- Colors Panel -->
+            <div class="panel">
+                <div class="color-section">
+                    <div>
+                        <span class="control-label">Primary Colour</span>
+                        <div class="color-swatches" id="primaryColorSwatches">
+                            <div class="color-swatch" data-color="82CDFF" style="background-color: #82CDFF;"></div>
+                            <div class="color-swatch" data-color="07144a" style="background-color: #07144a;"></div>
+                            <div class="color-swatch active" data-color="1f3ab6" style="background-color: #1f3ab6;"></div>
+                            <div class="color-swatch" data-color="FFFFFF" style="background-color: #FFFFFF;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="control-label">Secondary Colour</span>
+                        <div class="color-swatches" id="secondaryColorSwatches">
+                            <div class="color-swatch" data-color="82CDFF" style="background-color: #82CDFF;"></div>
+                            <div class="color-swatch" data-color="07144a" style="background-color: #07144a;"></div>
+                            <div class="color-swatch" data-color="1f3ab6" style="background-color: #1f3ab6;"></div>
+                            <div class="color-swatch active" data-color="FFFFFF" style="background-color: #FFFFFF;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern Weight -->
+            <div class="panel">
+                <div class="slider-panel">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Pattern Weight</span>
+                            <input type="text" class="slider-value" id="weightValue" value="50%">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="weightSlider" min="10" max="90" value="50">
+                            </div>
+                            <button class="reset-btn" data-reset="weight">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="weight-labels">
+                            <span class="weight-label">Light</span>
+                            <span class="weight-label">Bold</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern Scale -->
+            <div class="panel">
+                <div class="slider-panel">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Pattern Scale</span>
+                            <input type="text" class="slider-value" id="scaleValue" value="40">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="scaleSlider" min="10" max="100" value="40">
+                            </div>
+                            <button class="reset-btn" data-reset="scale">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Step Size</span>
+                            <input type="text" class="slider-value" id="stepValue" value="8">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="stepSlider" min="2" max="20" value="8">
+                            </div>
+                            <button class="reset-btn" data-reset="step">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Offset Controls -->
+            <div class="panel">
+                <div class="slider-panel">
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Offset X</span>
+                            <input type="text" class="slider-value" id="offsetXValue" value="0">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="offsetXSlider" min="-100" max="100" value="0">
+                            </div>
+                            <button class="reset-btn" data-reset="offsetX">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <span class="slider-label">Offset Y</span>
+                            <input type="text" class="slider-value" id="offsetYValue" value="0">
+                        </div>
+                        <div class="slider-row">
+                            <div class="slider-track">
+                                <input type="range" class="slider" id="offsetYSlider" min="-100" max="100" value="0">
+                            </div>
+                            <button class="reset-btn" data-reset="offsetY">
+                                <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Branding Footer -->
+        <div class="branding">
+            <img src="Assets/graphic%20tool%20by%20typograaf.svg" alt="A Graphic Tool by Typograaf" style="height: 21px;">
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container">
+        <canvas id="patternCanvas"></canvas>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar-right">
+        <!-- Canvas Size -->
+        <div class="panel">
+            <span class="control-label">Canvas Size</span>
+            <div class="size-grid" id="sizeButtons">
+                <button class="size-btn active" data-size="1920x1080">1920×1080</button>
+                <button class="size-btn" data-size="1080x1350">1080×1350</button>
+                <button class="size-btn" data-size="1080x1920">1080×1920</button>
+                <button class="size-btn" data-size="1920x1920">1920×1920</button>
+            </div>
+        </div>
+
+        <!-- Output -->
+        <div class="panel">
+            <span class="control-label">Output</span>
+            <div class="output-buttons">
+                <button class="output-btn" id="exportPNG">PNG</button>
+                <button class="output-btn" id="exportSVG">SVG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('patternCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const defaultValues = {
+            weight: 50,
+            scale: 40,
+            step: 8,
+            offsetX: 0,
+            offsetY: 0
+        };
+
+        const state = {
+            canvasWidth: 1920,
+            canvasHeight: 1080,
+            primaryColor: '1f3ab6',
+            secondaryColor: 'FFFFFF',
+            weight: 50,
+            scale: 40,
+            step: 8,
+            offsetX: 0,
+            offsetY: 0
+        };
+
+        function scaleCanvasToFit() {
+            const container = document.getElementById('canvas-container');
+
+            requestAnimationFrame(() => {
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+
+                const scaleX = containerWidth / state.canvasWidth;
+                const scaleY = containerHeight / state.canvasHeight;
+                const scale = Math.min(scaleX, scaleY) * 0.9;
+
+                canvas.style.transform = `scale(${scale})`;
+            });
+        }
+
+        function drawPattern() {
+            canvas.width = state.canvasWidth;
+            canvas.height = state.canvasHeight;
+
+            // Fill background with secondary color
+            ctx.fillStyle = '#' + state.secondaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Pattern parameters
+            const stripeWidth = state.scale;
+            const stepHeight = state.step;
+            const weightRatio = state.weight / 100;
+            const primaryWidth = stripeWidth * weightRatio;
+
+            // Calculate diagonal pattern
+            const angle = Math.PI / 4; // 45 degrees
+            const totalWidth = stripeWidth;
+
+            // Offset for animation/positioning
+            const offsetX = (state.offsetX / 100) * stripeWidth;
+            const offsetY = (state.offsetY / 100) * stripeWidth;
+
+            ctx.fillStyle = '#' + state.primaryColor;
+
+            // Calculate how many stripes we need to cover the canvas diagonally
+            const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+            const numStripes = Math.ceil(diagonal / totalWidth) + 4;
+
+            // Draw stepped parallelogram stripes
+            for (let i = -numStripes; i < numStripes * 2; i++) {
+                const baseX = i * totalWidth + offsetX;
+
+                // Draw stepped stripe
+                drawSteppedStripe(baseX, primaryWidth, stepHeight, offsetY);
+            }
+
+            scaleCanvasToFit();
+        }
+
+        function drawSteppedStripe(baseX, stripeWidth, stepHeight, offsetY) {
+            const numSteps = Math.ceil((canvas.height + canvas.width) / stepHeight) + 4;
+
+            ctx.beginPath();
+
+            for (let step = -numSteps; step < numSteps; step++) {
+                const y = step * stepHeight + offsetY;
+                const xOffset = step * stepHeight; // This creates the diagonal
+
+                const x1 = baseX + xOffset;
+                const x2 = x1 + stripeWidth;
+
+                if (step === -numSteps) {
+                    ctx.moveTo(x1, y);
+                } else {
+                    ctx.lineTo(x1, y);
+                }
+                ctx.lineTo(x1, y + stepHeight);
+            }
+
+            // Go back up the other side
+            for (let step = numSteps - 1; step >= -numSteps; step--) {
+                const y = step * stepHeight + offsetY;
+                const xOffset = step * stepHeight;
+
+                const x2 = baseX + xOffset + stripeWidth;
+
+                ctx.lineTo(x2, y + stepHeight);
+                ctx.lineTo(x2, y);
+            }
+
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function init() {
+            drawPattern();
+            scaleCanvasToFit();
+            setupEventListeners();
+            window.addEventListener('resize', scaleCanvasToFit);
+        }
+
+        function setupEventListeners() {
+            // Color swatches - Primary
+            document.querySelectorAll('#primaryColorSwatches .color-swatch').forEach(swatch => {
+                swatch.addEventListener('click', () => {
+                    document.querySelectorAll('#primaryColorSwatches .color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                    state.primaryColor = swatch.dataset.color;
+                    drawPattern();
+                });
+            });
+
+            // Color swatches - Secondary
+            document.querySelectorAll('#secondaryColorSwatches .color-swatch').forEach(swatch => {
+                swatch.addEventListener('click', () => {
+                    document.querySelectorAll('#secondaryColorSwatches .color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                    state.secondaryColor = swatch.dataset.color;
+                    drawPattern();
+                });
+            });
+
+            // Weight slider
+            const weightSlider = document.getElementById('weightSlider');
+            const weightValue = document.getElementById('weightValue');
+            weightSlider.addEventListener('input', () => {
+                state.weight = parseInt(weightSlider.value);
+                weightValue.value = state.weight + '%';
+                drawPattern();
+            });
+            weightValue.addEventListener('change', () => {
+                const val = parseInt(weightValue.value);
+                if (!isNaN(val) && val >= 10 && val <= 90) {
+                    state.weight = val;
+                    weightSlider.value = val;
+                    drawPattern();
+                }
+                weightValue.value = state.weight + '%';
+            });
+
+            // Scale slider
+            const scaleSlider = document.getElementById('scaleSlider');
+            const scaleValue = document.getElementById('scaleValue');
+            scaleSlider.addEventListener('input', () => {
+                state.scale = parseInt(scaleSlider.value);
+                scaleValue.value = state.scale;
+                drawPattern();
+            });
+            scaleValue.addEventListener('change', () => {
+                const val = parseInt(scaleValue.value);
+                if (!isNaN(val) && val >= 10 && val <= 100) {
+                    state.scale = val;
+                    scaleSlider.value = val;
+                    drawPattern();
+                }
+                scaleValue.value = state.scale;
+            });
+
+            // Step slider
+            const stepSlider = document.getElementById('stepSlider');
+            const stepValue = document.getElementById('stepValue');
+            stepSlider.addEventListener('input', () => {
+                state.step = parseInt(stepSlider.value);
+                stepValue.value = state.step;
+                drawPattern();
+            });
+            stepValue.addEventListener('change', () => {
+                const val = parseInt(stepValue.value);
+                if (!isNaN(val) && val >= 2 && val <= 20) {
+                    state.step = val;
+                    stepSlider.value = val;
+                    drawPattern();
+                }
+                stepValue.value = state.step;
+            });
+
+            // Offset X slider
+            const offsetXSlider = document.getElementById('offsetXSlider');
+            const offsetXValue = document.getElementById('offsetXValue');
+            offsetXSlider.addEventListener('input', () => {
+                state.offsetX = parseInt(offsetXSlider.value);
+                offsetXValue.value = state.offsetX;
+                drawPattern();
+            });
+            offsetXValue.addEventListener('change', () => {
+                const val = parseInt(offsetXValue.value);
+                if (!isNaN(val) && val >= -100 && val <= 100) {
+                    state.offsetX = val;
+                    offsetXSlider.value = val;
+                    drawPattern();
+                }
+                offsetXValue.value = state.offsetX;
+            });
+
+            // Offset Y slider
+            const offsetYSlider = document.getElementById('offsetYSlider');
+            const offsetYValue = document.getElementById('offsetYValue');
+            offsetYSlider.addEventListener('input', () => {
+                state.offsetY = parseInt(offsetYSlider.value);
+                offsetYValue.value = state.offsetY;
+                drawPattern();
+            });
+            offsetYValue.addEventListener('change', () => {
+                const val = parseInt(offsetYValue.value);
+                if (!isNaN(val) && val >= -100 && val <= 100) {
+                    state.offsetY = val;
+                    offsetYSlider.value = val;
+                    drawPattern();
+                }
+                offsetYValue.value = state.offsetY;
+            });
+
+            // Canvas size buttons
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const [w, h] = btn.dataset.size.split('x').map(Number);
+                    state.canvasWidth = w;
+                    state.canvasHeight = h;
+                    drawPattern();
+                });
+            });
+
+            // Reset buttons
+            document.querySelectorAll('.reset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const resetType = btn.dataset.reset;
+                    if (resetType && defaultValues[resetType] !== undefined) {
+                        state[resetType] = defaultValues[resetType];
+                        const slider = document.getElementById(resetType + 'Slider');
+                        const value = document.getElementById(resetType + 'Value');
+                        if (slider) slider.value = defaultValues[resetType];
+                        if (value) {
+                            if (resetType === 'weight') {
+                                value.value = defaultValues[resetType] + '%';
+                            } else {
+                                value.value = defaultValues[resetType];
+                            }
+                        }
+                        drawPattern();
+                    }
+                });
+            });
+
+            // Export PNG
+            document.getElementById('exportPNG').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'krcg-pattern.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+
+            // Export SVG
+            document.getElementById('exportSVG').addEventListener('click', () => {
+                const svg = generateSVG();
+                const blob = new Blob([svg], { type: 'image/svg+xml' });
+                const link = document.createElement('a');
+                link.download = 'krcg-pattern.svg';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            });
+        }
+
+        function generateSVG() {
+            const stripeWidth = state.scale;
+            const stepHeight = state.step;
+            const weightRatio = state.weight / 100;
+            const primaryWidth = stripeWidth * weightRatio;
+            const totalWidth = stripeWidth;
+
+            const offsetX = (state.offsetX / 100) * stripeWidth;
+            const offsetY = (state.offsetY / 100) * stripeWidth;
+
+            const diagonal = Math.sqrt(state.canvasWidth * state.canvasWidth + state.canvasHeight * state.canvasHeight);
+            const numStripes = Math.ceil(diagonal / totalWidth) + 4;
+
+            let paths = '';
+
+            for (let i = -numStripes; i < numStripes * 2; i++) {
+                const baseX = i * totalWidth + offsetX;
+                paths += generateSteppedStripePath(baseX, primaryWidth, stepHeight, offsetY);
+            }
+
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${state.canvasWidth}" height="${state.canvasHeight}" viewBox="0 0 ${state.canvasWidth} ${state.canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${state.canvasWidth}" height="${state.canvasHeight}" fill="#${state.secondaryColor}"/>
+    <g fill="#${state.primaryColor}">
+        ${paths}
+    </g>
+</svg>`;
+        }
+
+        function generateSteppedStripePath(baseX, stripeWidth, stepHeight, offsetY) {
+            const numSteps = Math.ceil((state.canvasHeight + state.canvasWidth) / stepHeight) + 4;
+
+            let path = 'M ';
+            let points = [];
+
+            // Left edge going down
+            for (let step = -numSteps; step < numSteps; step++) {
+                const y = step * stepHeight + offsetY;
+                const xOffset = step * stepHeight;
+                const x1 = baseX + xOffset;
+
+                points.push(`${x1},${y}`);
+                points.push(`${x1},${y + stepHeight}`);
+            }
+
+            // Right edge going up
+            for (let step = numSteps - 1; step >= -numSteps; step--) {
+                const y = step * stepHeight + offsetY;
+                const xOffset = step * stepHeight;
+                const x2 = baseX + xOffset + stripeWidth;
+
+                points.push(`${x2},${y + stepHeight}`);
+                points.push(`${x2},${y}`);
+            }
+
+            return `<path d="M ${points.join(' L ')} Z"/>`;
+        }
+
+        init();
+    </script>
+</body>
+</html>
