@@ -984,33 +984,33 @@
             const round = (v) => Math.round(v * 10) / 10;
 
             // Animation parameters
+            // Travel distance = one row spacing, so shapes seamlessly replace each other
             const travelDistance = Math.abs(effectiveRowSpacing);
             const totalCols = cols * 2;
-            // Stagger controls how much delay between first and last column (0-100% maps to 0-1 cycle)
-            const maxStaggerDelay = state.stagger / 100;
+            // Stagger: delay in seconds between first and last column starting
+            const maxStaggerDelay = (state.stagger / 100) * 2; // 0-2 seconds of stagger
 
             // Pre-calculate animation offset for each column (all shapes in same column move together)
             const columnOffsets = {};
             for (let col = -cols; col < cols; col++) {
+                if (!state.isAnimating && state.animationTime === 0) {
+                    columnOffsets[col] = 0;
+                    continue;
+                }
+
                 const colIndex = col + cols;
-                // Stagger delay: first column (left) starts at time 0, last column starts later
+                // Stagger delay: first column starts at time 0, last column starts later
                 const colDelay = (colIndex / totalCols) * maxStaggerDelay;
 
-                // This column's time in the animation cycle
-                let colTime = state.animationTime - colDelay;
-                colTime = ((colTime % 1) + 1) % 1; // Wrap to 0-1
+                // Time since this column started animating
+                const colTime = Math.max(0, state.animationTime - colDelay);
 
-                // Apply easing
-                const easedProgress = cubicBezier(
-                    colTime,
-                    state.easingP1.x, state.easingP1.y,
-                    state.easingP2.x, state.easingP2.y
-                );
+                // Continuous upward movement - use modulo to wrap within one row spacing
+                // This way shapes exiting top are seamlessly replaced by shapes from below
+                const rawOffset = colTime * travelDistance;
+                const wrappedOffset = rawOffset % travelDistance;
 
-                // Store the Y offset for this column
-                columnOffsets[col] = (state.isAnimating || state.animationTime > 0)
-                    ? -easedProgress * travelDistance
-                    : 0;
+                columnOffsets[col] = -wrappedOffset;
             }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
