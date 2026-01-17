@@ -1115,9 +1115,9 @@
             // Animation travel distance = 10 tiles per cycle
             const travelDistance = effectiveRowSpacing * 10;
 
-            // Row/col range (visibility filter will skip shapes outside view)
-            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 15;
-            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 10;
+            // Row/col range - keep minimal for performance
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 5;
+            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 5;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
             const cornerRadius = Math.max(3, stepSize * 0.05);
@@ -1168,9 +1168,6 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
-            // Buffer for visibility check
-            const buffer = stepSize * 2;
-
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
@@ -1182,17 +1179,6 @@
                     const animY = getVisualColumnOffset(visualColIdx);
 
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
-
-                    // Skip shapes completely outside visible area (with buffer)
-                    const minY = baseY - stepSize;
-                    const maxY = baseY + paraHeight;
-                    const minX = x;
-                    const maxX = x + stepSize;
-
-                    if (maxX < -buffer || minX > canvas.width + buffer ||
-                        maxY < -buffer || minY > canvas.height + buffer) {
-                        continue;
-                    }
 
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
