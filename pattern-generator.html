@@ -1165,8 +1165,9 @@
                 );
 
                 // Continuous offset: completed cycles + eased current cycle
+                // Multiply by numRepeats for more travel (approx screen height) while staying seamless
                 const totalEased = completedCycles + easedProgress;
-                visualColumnOffsets[visualColIdx] = -totalEased * effectiveRowSpacing;
+                visualColumnOffsets[visualColIdx] = -totalEased * effectiveRowSpacing * numRepeats;
                 return visualColumnOffsets[visualColIdx];
             }
 
