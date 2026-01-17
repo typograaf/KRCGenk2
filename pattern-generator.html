@@ -987,8 +987,8 @@
             // Travel distance = one row spacing, so shapes seamlessly replace each other
             const travelDistance = Math.abs(effectiveRowSpacing);
             const totalCols = cols * 2;
-            // Stagger: phase offset between columns (0% = all same, 100% = full wave across screen)
-            const maxPhaseOffset = (state.stagger / 100) * travelDistance;
+            // Stagger: phase offset between columns (0% = all same, 100% = full cycle offset across screen)
+            const maxPhaseOffset = state.stagger / 100; // 0 to 1 cycle offset
 
             // Pre-calculate animation offset for each column (all shapes in same column move together)
             const columnOffsets = {};
@@ -999,12 +999,21 @@
                 }
 
                 const colIndex = col + cols;
-                // Phase offset: each column has a fixed offset creating a wave pattern
+                // Phase offset: each column starts at a different point in the cycle
                 const phaseOffset = (colIndex / totalCols) * maxPhaseOffset;
 
-                // All columns move at same speed, but with different starting phases
-                const baseOffset = state.animationTime * travelDistance;
-                columnOffsets[col] = -(baseOffset + phaseOffset);
+                // Calculate this column's position in its animation cycle (0 to 1, looping)
+                let cycleProgress = (state.animationTime + phaseOffset) % 1;
+
+                // Apply easing to the cycle progress
+                const easedProgress = cubicBezier(
+                    cycleProgress,
+                    state.easingP1.x, state.easingP1.y,
+                    state.easingP2.x, state.easingP2.y
+                );
+
+                // Convert eased progress to Y offset (0 = start position, 1 = moved up by travelDistance)
+                columnOffsets[col] = -easedProgress * travelDistance;
             }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
