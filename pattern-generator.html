@@ -695,11 +695,11 @@
                 <div class="slider-group">
                     <div class="slider-header">
                         <span class="slider-label">Stagger</span>
-                        <input type="text" class="slider-value" id="staggerValue" value="20%">
+                        <input type="text" class="slider-value" id="staggerValue" value="100%">
                     </div>
                     <div class="slider-row">
                         <div class="slider-track">
-                            <input type="range" class="slider" id="staggerSlider" min="0" max="100" value="20">
+                            <input type="range" class="slider" id="staggerSlider" min="0" max="100" value="100">
                         </div>
                         <button class="reset-btn" data-reset="stagger">
                             <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -713,7 +713,7 @@
                     <div class="easing-container">
                         <canvas id="easingCanvas" width="152" height="152"></canvas>
                     </div>
-                    <input type="text" class="easing-input" id="easingInput" value="0.40, 0.00, 0.20, 1.00">
+                    <input type="text" class="easing-input" id="easingInput" value="0.75, 0.00, 0.25, 1.00">
                 </div>
             </div>
         </div>
@@ -734,7 +734,7 @@
             offsetX: 0,
             offsetY: 0,
             speed: 50,
-            stagger: 20
+            stagger: 100
         };
 
         const state = {
@@ -747,12 +747,12 @@
             offsetX: 0,
             offsetY: 0,
             speed: 50,
-            stagger: 20,
+            stagger: 100,
             isAnimating: false,
             animationTime: 0,
             // Bezier control points for easing (cubic bezier: 0,0 -> p1 -> p2 -> 1,1)
-            easingP1: { x: 0.4, y: 0 },
-            easingP2: { x: 0.2, y: 1 }
+            easingP1: { x: 0.75, y: 0 },
+            easingP2: { x: 0.25, y: 1 }
         };
 
         let animationFrameId = null;
