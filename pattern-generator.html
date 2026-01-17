@@ -984,11 +984,11 @@
             const round = (v) => Math.round(v * 10) / 10;
 
             // Animation parameters
-            // Travel distance = one row spacing, so shapes seamlessly replace each other
-            const travelDistance = Math.abs(effectiveRowSpacing);
             const totalCols = cols * 2;
-            // Stagger: phase offset between columns (0% = all same, 100% = full cycle offset across screen)
-            const maxPhaseOffset = state.stagger / 100; // 0 to 1 cycle offset
+            // How far column moves in one complete cycle (the full canvas height for visible movement)
+            const travelDistance = canvas.height;
+            // Stagger: phase offset between columns (0% = all same, 100% = full cycle offset)
+            const maxPhaseOffset = state.stagger / 100;
 
             // Pre-calculate animation offset for each column (all shapes in same column move together)
             const columnOffsets = {};
@@ -1012,7 +1012,7 @@
                     state.easingP2.x, state.easingP2.y
                 );
 
-                // Convert eased progress to Y offset (0 = start position, 1 = moved up by travelDistance)
+                // The entire column moves by this offset
                 columnOffsets[col] = -easedProgress * travelDistance;
             }
 
