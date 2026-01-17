@@ -1112,11 +1112,11 @@
 
             const effectiveRowSpacing = rowSpacing + vGap;
 
-            // Animation travel distance = one tile (pattern tiles seamlessly at this interval)
-            const travelDistance = effectiveRowSpacing;
+            // Animation travel distance = 10 tiles per cycle
+            const travelDistance = effectiveRowSpacing * 10;
 
-            // Need extra rows to cover animation offset
-            const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 5;
+            // Need extra rows to cover animation offset plus buffer
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 10;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
