@@ -1168,8 +1168,8 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
-            // Buffer for visibility check (shapes slightly outside view still needed for union)
-            const buffer = stepSize * 2;
+            // Buffer for visibility check (larger buffer prevents gaps at cycle boundaries)
+            const buffer = Math.max(stepSize * 3, travelDistance);
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
