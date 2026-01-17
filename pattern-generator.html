@@ -1032,7 +1032,24 @@
                 }
             }
 
-            // Perform boolean union using polygon-clipping library
+            // During animation, skip boolean union for performance and to avoid gaps
+            // Just draw simple shapes - rounded corners only for static display
+            if (state.isAnimating) {
+                ctx.fillStyle = '#' + state.primaryColor;
+                for (const poly of polygons) {
+                    ctx.beginPath();
+                    ctx.moveTo(poly[0][0][0], poly[0][0][1]);
+                    for (let i = 1; i < poly[0].length; i++) {
+                        ctx.lineTo(poly[0][i][0], poly[0][i][1]);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                scaleCanvasToFit();
+                return;
+            }
+
+            // Perform boolean union using polygon-clipping library (static only)
             let united;
             try {
                 united = polygonClipping.union(...polygons);
