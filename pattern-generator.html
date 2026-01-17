@@ -1187,8 +1187,6 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
-            const buffer = stepSize * 2;
-
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
@@ -1199,19 +1197,7 @@
                     // All shapes in the same visual column get the exact same animation offset
                     const animY = getVisualColumnOffset(visualColIdx);
 
-                    // Check for invalid animation offset
-                    if (!Number.isFinite(animY)) {
-                        console.error('Invalid animY:', animY, 'for visualColIdx:', visualColIdx);
-                        continue;
-                    }
-
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
-
-                    // Skip shapes outside visible area
-                    if (x + stepSize < -buffer || x > canvas.width + buffer ||
-                        baseY + paraHeight < -buffer || baseY - stepSize > canvas.height + buffer) {
-                        continue;
-                    }
 
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
