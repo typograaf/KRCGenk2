@@ -527,19 +527,19 @@
                 </div>
             </div>
 
-            <!-- Pattern Scale -->
+            <!-- Zoom & Column Distance -->
             <div class="panel">
                 <div class="slider-panel">
                     <div class="slider-group">
                         <div class="slider-header">
-                            <span class="slider-label">Pattern Scale</span>
-                            <input type="text" class="slider-value" id="scaleValue" value="120">
+                            <span class="slider-label">Zoom</span>
+                            <input type="text" class="slider-value" id="zoomValue" value="100%">
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="scaleSlider" min="40" max="300" value="120">
+                                <input type="range" class="slider" id="zoomSlider" min="25" max="200" value="100">
                             </div>
-                            <button class="reset-btn" data-reset="scale">
+                            <button class="reset-btn" data-reset="zoom">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
@@ -548,14 +548,14 @@
                     </div>
                     <div class="slider-group">
                         <div class="slider-header">
-                            <span class="slider-label">Step Size</span>
-                            <input type="text" class="slider-value" id="stepValue" value="20">
+                            <span class="slider-label">Column Distance</span>
+                            <input type="text" class="slider-value" id="columnDistValue" value="100">
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="stepSlider" min="5" max="60" value="20">
+                                <input type="range" class="slider" id="columnDistSlider" min="50" max="300" value="100">
                             </div>
-                            <button class="reset-btn" data-reset="step">
+                            <button class="reset-btn" data-reset="columnDist">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4.30909 5.75766H6.33126V7.77983M2.69135 2.52218H0.669174V0.5M6.50014 2.92799C6.27338 2.36673 5.89371 1.88035 5.4043 1.52412C4.91489 1.16789 4.33544 0.956009 3.73166 0.912729C3.12788 0.86945 2.52394 0.996405 1.98872 1.27919C1.45351 1.56197 1.00842 1.98935 0.70393 2.51252M0.500132 5.35204C0.726893 5.91329 1.10655 6.39967 1.59597 6.7559C2.08538 7.11213 2.66542 7.32374 3.2692 7.36702C3.87298 7.4103 4.47643 7.28337 5.01164 7.00058C5.54686 6.7178 5.99164 6.2905 6.29613 5.76733" stroke="#82CDFF" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
@@ -644,8 +644,8 @@
 
         const defaultValues = {
             weight: 50,
-            scale: 120,
-            step: 20,
+            zoom: 100,
+            columnDist: 100,
             offsetX: 0,
             offsetY: 0
         };
@@ -656,8 +656,8 @@
             primaryColor: '1f3ab6',
             secondaryColor: 'FFFFFF',
             weight: 50,
-            scale: 120,
-            step: 20,
+            zoom: 100,
+            columnDist: 100,
             offsetX: 0,
             offsetY: 0
         };
@@ -686,12 +686,13 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pattern parameters
-            const stepSize = state.step;         // Size of each step notch (fixed, controls 45° angle)
-            const stripeSpacing = state.scale;   // Horizontal spacing between stripes (fixed)
+            const zoomFactor = state.zoom / 100;
+            const baseStepSize = 60;  // Base step size at 100% zoom
+            const stepSize = baseStepSize * zoomFactor;  // Zoom scales the step size
+            const stripeSpacing = state.columnDist * zoomFactor;  // Column distance, also scaled by zoom
             const weightRatio = state.weight / 100;
 
             // Weight controls the HEIGHT of each parallelogram
-            // paraHeight varies from small (light) to large (bold)
             const paraHeight = stepSize * 3 * weightRatio;
 
             // Offset for positioning
@@ -712,7 +713,6 @@
                     const baseY = row * stepSize * 2 + offsetY;
 
                     // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
-                    // stepSize controls the diagonal (45° angle), paraHeight controls vertical extent
                     ctx.beginPath();
                     ctx.moveTo(x, baseY + paraHeight);                          // bottom-left
                     ctx.lineTo(x, baseY);                                       // top-left
@@ -772,40 +772,40 @@
                 weightValue.value = state.weight + '%';
             });
 
-            // Scale slider
-            const scaleSlider = document.getElementById('scaleSlider');
-            const scaleValue = document.getElementById('scaleValue');
-            scaleSlider.addEventListener('input', () => {
-                state.scale = parseInt(scaleSlider.value);
-                scaleValue.value = state.scale;
+            // Zoom slider
+            const zoomSlider = document.getElementById('zoomSlider');
+            const zoomValue = document.getElementById('zoomValue');
+            zoomSlider.addEventListener('input', () => {
+                state.zoom = parseInt(zoomSlider.value);
+                zoomValue.value = state.zoom + '%';
                 drawPattern();
             });
-            scaleValue.addEventListener('change', () => {
-                const val = parseInt(scaleValue.value);
-                if (!isNaN(val) && val >= 40 && val <= 300) {
-                    state.scale = val;
-                    scaleSlider.value = val;
+            zoomValue.addEventListener('change', () => {
+                const val = parseInt(zoomValue.value);
+                if (!isNaN(val) && val >= 25 && val <= 200) {
+                    state.zoom = val;
+                    zoomSlider.value = val;
                     drawPattern();
                 }
-                scaleValue.value = state.scale;
+                zoomValue.value = state.zoom + '%';
             });
 
-            // Step slider
-            const stepSlider = document.getElementById('stepSlider');
-            const stepValue = document.getElementById('stepValue');
-            stepSlider.addEventListener('input', () => {
-                state.step = parseInt(stepSlider.value);
-                stepValue.value = state.step;
+            // Column Distance slider
+            const columnDistSlider = document.getElementById('columnDistSlider');
+            const columnDistValue = document.getElementById('columnDistValue');
+            columnDistSlider.addEventListener('input', () => {
+                state.columnDist = parseInt(columnDistSlider.value);
+                columnDistValue.value = state.columnDist;
                 drawPattern();
             });
-            stepValue.addEventListener('change', () => {
-                const val = parseInt(stepValue.value);
-                if (!isNaN(val) && val >= 5 && val <= 60) {
-                    state.step = val;
-                    stepSlider.value = val;
+            columnDistValue.addEventListener('change', () => {
+                const val = parseInt(columnDistValue.value);
+                if (!isNaN(val) && val >= 50 && val <= 300) {
+                    state.columnDist = val;
+                    columnDistSlider.value = val;
                     drawPattern();
                 }
-                stepValue.value = state.step;
+                columnDistValue.value = state.columnDist;
             });
 
             // Offset X slider
@@ -897,8 +897,10 @@
         }
 
         function generateSVG() {
-            const stepSize = state.step;
-            const stripeSpacing = state.scale;
+            const zoomFactor = state.zoom / 100;
+            const baseStepSize = 60;
+            const stepSize = baseStepSize * zoomFactor;
+            const stripeSpacing = state.columnDist * zoomFactor;
             const weightRatio = state.weight / 100;
             const paraHeight = stepSize * 3 * weightRatio;
 
