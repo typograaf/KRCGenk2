@@ -1127,8 +1127,8 @@
             const round = (v) => Math.round(v * 10) / 10;
 
             // Animation parameters
-            // How far column moves in one complete cycle
-            const travelDistance = canvas.height;
+            // How far column moves in one complete cycle - must match pattern repeat for seamless loop
+            const travelDistance = effectiveRowSpacing;
             // Stagger: phase offset between visual columns (0% = all same, 100% = 10% cycle offset)
             const maxPhaseOffset = state.stagger / 1000;
             // Count visible columns on screen for stagger distribution
