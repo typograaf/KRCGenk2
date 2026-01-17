@@ -686,42 +686,44 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pattern parameters
-            const stripeSpacing = state.scale;   // Horizontal distance between stripe starts
-            const stepHeight = state.step;       // Base step height
+            const stepSize = state.step;         // Size of each step (controls parallelogram size)
             const weightRatio = state.weight / 100;
 
-            // Weight controls the HEIGHT of the parallelogram (vertical extent)
-            const stripeWidth = stripeSpacing;   // Fixed width
-            const paraHeight = stepHeight * 2 * weightRatio;  // Height varies with weight
+            // For 45° angle: parallelogram width = height = stepSize
+            const paraSize = stepSize;           // Both width and height, maintains 45° angle
+
+            // Weight controls the spacing between stripes
+            // Lower weight = more spacing (thinner stripes), higher weight = less spacing (thicker stripes)
+            const stripeSpacing = state.scale * (1 - weightRatio * 0.8);  // Spacing decreases as weight increases
 
             // Offset for positioning
             const offsetX = (state.offsetX / 100) * stripeSpacing;
-            const offsetY = (state.offsetY / 100) * stepHeight;
+            const offsetY = (state.offsetY / 100) * stepSize;
 
             ctx.fillStyle = '#' + state.primaryColor;
 
             // Calculate grid size needed to cover canvas
-            const rows = Math.ceil(canvas.height / stepHeight) + 4;
-            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 4;
+            const rows = Math.ceil(canvas.height / stepSize) + 4;
+            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Draw parallelograms row by row
-            // Vertical left/right edges, slanted top/bottom edges (creates ↗ diagonal stripes)
-            for (let row = -2; row < rows; row++) {
+            // Vertical left/right edges, slanted top/bottom edges at 45° (creates ↗ diagonal stripes)
+            for (let row = -4; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // Base position
+                    // Base position - each stripe starts at col * stripeSpacing
                     const baseX = col * stripeSpacing + offsetX;
-                    const baseY = row * stepHeight + offsetY;
+                    const baseY = row * stepSize + offsetY;
 
-                    // Shift column position based on row to create diagonal alignment
-                    const x = baseX - row * stepHeight;
+                    // Shift based on row to create diagonal alignment
+                    const x = baseX - row * stepSize;
 
-                    // Draw parallelogram with VERTICAL sides
-                    // Height controlled by weight, centered on the row
+                    // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
+                    // paraSize is used for both the vertical height AND horizontal shift to maintain 45°
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY + paraHeight);                         // bottom-left
-                    ctx.lineTo(x, baseY);                                      // top-left (vertical left edge)
-                    ctx.lineTo(x + stripeWidth, baseY - paraHeight);           // top-right (slanted top edge)
-                    ctx.lineTo(x + stripeWidth, baseY);                        // bottom-right (vertical right edge)
+                    ctx.moveTo(x, baseY + paraSize);              // bottom-left
+                    ctx.lineTo(x, baseY);                          // top-left
+                    ctx.lineTo(x + paraSize, baseY - paraSize);    // top-right (45° diagonal)
+                    ctx.lineTo(x + paraSize, baseY);               // bottom-right
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -901,31 +903,30 @@
         }
 
         function generateSVG() {
-            const stripeSpacing = state.scale;
-            const stepHeight = state.step;
+            const stepSize = state.step;
             const weightRatio = state.weight / 100;
-            const stripeWidth = stripeSpacing;
-            const paraHeight = stepHeight * 2 * weightRatio;
+            const paraSize = stepSize;
+            const stripeSpacing = state.scale * (1 - weightRatio * 0.8);
 
             const offsetX = (state.offsetX / 100) * stripeSpacing;
-            const offsetY = (state.offsetY / 100) * stepHeight;
+            const offsetY = (state.offsetY / 100) * stepSize;
 
-            const rows = Math.ceil(state.canvasHeight / stepHeight) + 4;
-            const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 4;
+            const rows = Math.ceil(state.canvasHeight / stepSize) + 4;
+            const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             let paths = '';
 
-            for (let row = -2; row < rows; row++) {
+            for (let row = -4; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const baseX = col * stripeSpacing + offsetX;
-                    const baseY = row * stepHeight + offsetY;
-                    const x = baseX - row * stepHeight;
+                    const baseY = row * stepSize + offsetY;
+                    const x = baseX - row * stepSize;
 
-                    // Parallelogram with vertical sides, height controlled by weight
-                    const blX = x, blY = baseY + paraHeight;
+                    // Parallelogram with vertical sides and 45° diagonal
+                    const blX = x, blY = baseY + paraSize;
                     const tlX = x, tlY = baseY;
-                    const trX = x + stripeWidth, trY = baseY - paraHeight;
-                    const brX = x + stripeWidth, brY = baseY;
+                    const trX = x + paraSize, trY = baseY - paraSize;
+                    const brX = x + paraSize, brY = baseY;
 
                     paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
                 }
