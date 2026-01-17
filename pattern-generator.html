@@ -1135,9 +1135,9 @@
             // Animation travel distance = 10 tiles per cycle
             const travelDistance = effectiveRowSpacing * 10;
 
-            // Row/col range - keep minimal for performance
-            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 5;
-            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 5;
+            // Row/col range - ensure full coverage on all canvas sizes
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 10;
+            const cols = Math.ceil((canvas.width + canvas.height * 2) / stripeSpacing) + 10;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
             const cornerRadius = Math.max(3, stepSize * 0.05);
