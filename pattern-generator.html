@@ -761,7 +761,7 @@
             const polygons = [];
 
             // Overlap must scale with zoom to ensure shapes always connect properly
-            const overlap = stepSize * 0.5;
+            const overlap = stepSize * 0.25;
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
