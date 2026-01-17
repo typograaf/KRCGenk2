@@ -1088,22 +1088,27 @@
         }
 
         function drawPattern() {
-            canvas.width = state.canvasWidth;
-            canvas.height = state.canvasHeight;
+            // Only resize canvas when dimensions change (resizing clears the canvas)
+            if (canvas.width !== state.canvasWidth || canvas.height !== state.canvasHeight) {
+                canvas.width = state.canvasWidth;
+                canvas.height = state.canvasHeight;
+            }
 
             // Use offscreen canvas during animation for double buffering
             const useOffscreen = state.isAnimating;
             let drawCtx = ctx;
 
             if (useOffscreen) {
-                offscreen.width = state.canvasWidth;
-                offscreen.height = state.canvasHeight;
+                if (offscreen.width !== state.canvasWidth || offscreen.height !== state.canvasHeight) {
+                    offscreen.width = state.canvasWidth;
+                    offscreen.height = state.canvasHeight;
+                }
                 drawCtx = offCtx;
             }
 
-            // Fill background
+            // Fill background (this clears the canvas)
             drawCtx.fillStyle = '#' + state.secondaryColor;
-            drawCtx.fillRect(0, 0, canvas.width, canvas.height);
+            drawCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
 
             // Pattern parameters
             const zoomFactor = state.zoom / 50;
