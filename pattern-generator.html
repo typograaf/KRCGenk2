@@ -690,6 +690,14 @@
                 const u1x = v1x / len1, u1y = v1y / len1;
                 const u2x = v2x / len2, u2y = v2y / len2;
 
+                // Calculate angle between edges using dot product
+                const dot = u1x * u2x + u1y * u2y;
+                // If angle is close to 180° (dot close to -1), it's nearly straight - skip rounding
+                if (dot < -0.95) {
+                    result.push(curr);
+                    continue;
+                }
+
                 // Limit radius based on edge lengths
                 const maxR = Math.min(radius, len1 / 2, len2 / 2);
 
@@ -753,7 +761,7 @@
             const polygons = [];
 
             // Overlap must scale with zoom to ensure shapes always connect properly
-            const overlap = stepSize * 0.05;
+            const overlap = stepSize * 0.15;
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
@@ -994,7 +1002,7 @@
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             const cornerRadius = Math.max(8, stepSize * 0.15);
-            const overlap = stepSize * 0.05;
+            const overlap = stepSize * 0.15;
 
             // Build polygons
             const polygons = [];
