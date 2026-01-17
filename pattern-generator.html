@@ -699,7 +699,13 @@
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius for rounded parallelograms
-            const cornerRadius = stepSize * 0.15;
+            const cornerRadius = stepSize * 0.12;
+
+            // Set up rounded stroke
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = cornerRadius * 2;
+            ctx.strokeStyle = '#' + state.primaryColor;
 
             // Draw parallelograms in diagonal stripes (start further up to cover canvas)
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
@@ -708,24 +714,15 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Parallelogram corners
-                    const bl = { x: x, y: baseY + paraHeight };                    // bottom-left
-                    const tl = { x: x, y: baseY };                                 // top-left
-                    const tr = { x: x + stepSize, y: baseY - stepSize };           // top-right
-                    const br = { x: x + stepSize, y: baseY - stepSize + paraHeight }; // bottom-right
-
-                    // Draw rounded parallelogram using arcTo
+                    // Draw parallelogram with rounded corners via stroke
                     ctx.beginPath();
-                    ctx.moveTo(bl.x, bl.y - cornerRadius);
-                    ctx.arcTo(bl.x, bl.y, bl.x + cornerRadius, bl.y, cornerRadius);           // bottom-left corner
-                    ctx.lineTo(br.x - cornerRadius, br.y);
-                    ctx.arcTo(br.x, br.y, br.x, br.y - cornerRadius, cornerRadius);           // bottom-right corner
-                    ctx.lineTo(tr.x, tr.y + cornerRadius);
-                    ctx.arcTo(tr.x, tr.y, tr.x - cornerRadius, tr.y, cornerRadius);           // top-right corner
-                    ctx.lineTo(tl.x + cornerRadius, tl.y);
-                    ctx.arcTo(tl.x, tl.y, tl.x, tl.y + cornerRadius, cornerRadius);           // top-left corner
+                    ctx.moveTo(x, baseY + paraHeight);                          // bottom-left
+                    ctx.lineTo(x, baseY);                                       // top-left
+                    ctx.lineTo(x + stepSize, baseY - stepSize);                 // top-right
+                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);    // bottom-right
                     ctx.closePath();
                     ctx.fill();
+                    ctx.stroke();
                 }
             }
 
@@ -907,7 +904,7 @@
             const rowsNeeded = Math.ceil(state.canvasHeight / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
-            const cornerRadius = stepSize * 0.15;
+            const cornerRadius = stepSize * 0.12;
             let paths = '';
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
@@ -915,22 +912,20 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Parallelogram corners
+                    // Parallelogram path
                     const bl = { x: x, y: baseY + paraHeight };
                     const tl = { x: x, y: baseY };
                     const tr = { x: x + stepSize, y: baseY - stepSize };
                     const br = { x: x + stepSize, y: baseY - stepSize + paraHeight };
 
-                    // SVG path with rounded corners using quadratic bezier curves
-                    const r = cornerRadius;
-                    paths += `<path d="M ${bl.x},${bl.y - r} Q ${bl.x},${bl.y} ${bl.x + r},${bl.y} L ${br.x - r},${br.y} Q ${br.x},${br.y} ${br.x},${br.y - r} L ${tr.x},${tr.y + r} Q ${tr.x},${tr.y} ${tr.x - r},${tr.y} L ${tl.x + r},${tl.y} Q ${tl.x},${tl.y} ${tl.x},${tl.y + r} Z"/>`;
+                    paths += `<path d="M ${bl.x},${bl.y} L ${tl.x},${tl.y} L ${tr.x},${tr.y} L ${br.x},${br.y} Z"/>`;
                 }
             }
 
             return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${state.canvasWidth}" height="${state.canvasHeight}" viewBox="0 0 ${state.canvasWidth} ${state.canvasHeight}" xmlns="http://www.w3.org/2000/svg">
     <rect width="${state.canvasWidth}" height="${state.canvasHeight}" fill="#${state.secondaryColor}"/>
-    <g fill="#${state.primaryColor}">
+    <g fill="#${state.primaryColor}" stroke="#${state.primaryColor}" stroke-width="${cornerRadius * 2}" stroke-linejoin="round" stroke-linecap="round">
         ${paths}
     </g>
 </svg>`;
