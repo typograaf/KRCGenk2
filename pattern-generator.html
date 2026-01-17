@@ -334,15 +334,17 @@
 
         .easing-container {
             background: #1a2c62;
+            border: 1px solid #334473;
             border-radius: 6px;
-            padding: 8px;
-            cursor: pointer;
+            padding: 12px;
+            position: relative;
         }
 
         #easingCanvas {
-            display: block;
             width: 100%;
-            height: 80px;
+            aspect-ratio: 1;
+            display: block;
+            cursor: crosshair;
         }
 
         /* Mobile Responsive */
@@ -770,77 +772,164 @@
             return (3 * a * t + 2 * b) * t + c;
         }
 
+        // Easing canvas variables
+        let easingCanvas, easingCtx;
+
         // Draw easing curve on the easing canvas
         function drawEasingCurve() {
-            const easingCanvas = document.getElementById('easingCanvas');
-            const ectx = easingCanvas.getContext('2d');
-            const w = easingCanvas.width;
-            const h = easingCanvas.height;
-            const padding = 10;
+            if (!easingCanvas || !easingCtx) return;
 
-            ectx.clearRect(0, 0, w, h);
+            const rect = easingCanvas.getBoundingClientRect();
+            const w = rect.width;
+            const h = rect.height;
+            const padding = 12;
+            const gridSize = w - padding * 2;
+
+            easingCtx.clearRect(0, 0, easingCanvas.width, easingCanvas.height);
 
             // Draw grid
-            ectx.strokeStyle = '#334473';
-            ectx.lineWidth = 1;
-            ectx.beginPath();
-            ectx.moveTo(padding, padding);
-            ectx.lineTo(padding, h - padding);
-            ectx.lineTo(w - padding, h - padding);
-            ectx.stroke();
-
-            // Draw diagonal guide
-            ectx.strokeStyle = '#334473';
-            ectx.setLineDash([4, 4]);
-            ectx.beginPath();
-            ectx.moveTo(padding, h - padding);
-            ectx.lineTo(w - padding, padding);
-            ectx.stroke();
-            ectx.setLineDash([]);
-
-            // Draw bezier curve
-            const graphW = w - 2 * padding;
-            const graphH = h - 2 * padding;
-
-            ectx.strokeStyle = '#82CDFF';
-            ectx.lineWidth = 2;
-            ectx.beginPath();
-            for (let i = 0; i <= 100; i++) {
-                const t = i / 100;
-                const y = cubicBezier(t, state.easingP1.x, state.easingP1.y, state.easingP2.x, state.easingP2.y);
-                const px = padding + t * graphW;
-                const py = h - padding - y * graphH;
-                if (i === 0) ectx.moveTo(px, py);
-                else ectx.lineTo(px, py);
+            easingCtx.strokeStyle = '#334473';
+            easingCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const x = padding + (gridSize / 4) * i;
+                const y = padding + (gridSize / 4) * i;
+                easingCtx.beginPath();
+                easingCtx.moveTo(x, padding);
+                easingCtx.lineTo(x, padding + gridSize);
+                easingCtx.stroke();
+                easingCtx.beginPath();
+                easingCtx.moveTo(padding, y);
+                easingCtx.lineTo(padding + gridSize, y);
+                easingCtx.stroke();
             }
-            ectx.stroke();
 
-            // Draw control points
-            const p1x = padding + state.easingP1.x * graphW;
-            const p1y = h - padding - state.easingP1.y * graphH;
-            const p2x = padding + state.easingP2.x * graphW;
-            const p2y = h - padding - state.easingP2.y * graphH;
+            const toCanvasX = (x) => padding + x * gridSize;
+            const toCanvasY = (y) => padding + gridSize - y * gridSize;
 
-            // Control point lines
-            ectx.strokeStyle = '#82CDFF';
-            ectx.lineWidth = 1;
-            ectx.globalAlpha = 0.5;
-            ectx.beginPath();
-            ectx.moveTo(padding, h - padding);
-            ectx.lineTo(p1x, p1y);
-            ectx.moveTo(w - padding, padding);
-            ectx.lineTo(p2x, p2y);
-            ectx.stroke();
-            ectx.globalAlpha = 1;
+            // Draw handle lines (from origin to control points)
+            easingCtx.strokeStyle = '#82CDFF';
+            easingCtx.lineWidth = 1;
+            // Line from (0,0) to P1
+            easingCtx.beginPath();
+            easingCtx.moveTo(toCanvasX(0), toCanvasY(0));
+            easingCtx.lineTo(toCanvasX(state.easingP1.x), toCanvasY(state.easingP1.y));
+            easingCtx.stroke();
+            // Line from (1,1) to P2
+            easingCtx.beginPath();
+            easingCtx.moveTo(toCanvasX(1), toCanvasY(1));
+            easingCtx.lineTo(toCanvasX(state.easingP2.x), toCanvasY(state.easingP2.y));
+            easingCtx.stroke();
 
-            // Control point circles
-            ectx.fillStyle = '#82CDFF';
-            ectx.beginPath();
-            ectx.arc(p1x, p1y, 5, 0, Math.PI * 2);
-            ectx.fill();
-            ectx.beginPath();
-            ectx.arc(p2x, p2y, 5, 0, Math.PI * 2);
-            ectx.fill();
+            // Draw the cubic bezier curve
+            easingCtx.lineWidth = 2;
+            easingCtx.beginPath();
+            easingCtx.moveTo(toCanvasX(0), toCanvasY(0));
+            easingCtx.bezierCurveTo(
+                toCanvasX(state.easingP1.x), toCanvasY(state.easingP1.y),
+                toCanvasX(state.easingP2.x), toCanvasY(state.easingP2.y),
+                toCanvasX(1), toCanvasY(1)
+            );
+            easingCtx.stroke();
+
+            // Draw handles
+            const handleRadius = 4;
+            const drawHandle = (x, y, filled = true) => {
+                easingCtx.fillStyle = '#82CDFF';
+                easingCtx.beginPath();
+                easingCtx.arc(toCanvasX(x), toCanvasY(y), handleRadius, 0, Math.PI * 2);
+                if (filled) easingCtx.fill();
+                else easingCtx.stroke();
+            };
+
+            drawHandle(state.easingP1.x, state.easingP1.y);
+            drawHandle(state.easingP2.x, state.easingP2.y);
+            drawHandle(0, 0, false);
+            drawHandle(1, 1, false);
+        }
+
+        function initEasingEditor() {
+            easingCanvas = document.getElementById('easingCanvas');
+            easingCtx = easingCanvas.getContext('2d');
+
+            // Handle high-DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            const rect = easingCanvas.getBoundingClientRect();
+            easingCanvas.width = rect.width * dpr;
+            easingCanvas.height = rect.height * dpr;
+            easingCtx.scale(dpr, dpr);
+
+            const padding = 12;
+            let draggingHandle = null;
+
+            const getGridSize = () => {
+                const r = easingCanvas.getBoundingClientRect();
+                return r.width - padding * 2;
+            };
+
+            const fromCanvasCoords = (cx, cy) => {
+                const gridSize = getGridSize();
+                return {
+                    x: Math.max(0, Math.min(1, (cx - padding) / gridSize)),
+                    y: Math.max(0, Math.min(1, 1 - (cy - padding) / gridSize))
+                };
+            };
+
+            const toCanvasCoords = (nx, ny) => {
+                const gridSize = getGridSize();
+                return {
+                    x: padding + nx * gridSize,
+                    y: padding + gridSize - ny * gridSize
+                };
+            };
+
+            const getHandleAt = (cx, cy) => {
+                const threshold = 15;
+                const p1 = toCanvasCoords(state.easingP1.x, state.easingP1.y);
+                const p2 = toCanvasCoords(state.easingP2.x, state.easingP2.y);
+
+                if (Math.sqrt((cx - p1.x) ** 2 + (cy - p1.y) ** 2) < threshold) return 'p1';
+                if (Math.sqrt((cx - p2.x) ** 2 + (cy - p2.y) ** 2) < threshold) return 'p2';
+                return null;
+            };
+
+            easingCanvas.addEventListener('mousedown', (e) => {
+                const rect = easingCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                draggingHandle = getHandleAt(mouseX, mouseY);
+            });
+
+            const handleMouseMove = (e) => {
+                if (!draggingHandle) return;
+
+                const rect = easingCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const normalized = fromCanvasCoords(mouseX, mouseY);
+
+                if (draggingHandle === 'p1') {
+                    state.easingP1.x = normalized.x;
+                    state.easingP1.y = normalized.y;
+                } else if (draggingHandle === 'p2') {
+                    state.easingP2.x = normalized.x;
+                    state.easingP2.y = normalized.y;
+                }
+
+                drawEasingCurve();
+            };
+
+            const handleMouseUp = () => {
+                draggingHandle = null;
+            };
+
+            easingCanvas.addEventListener('mousemove', handleMouseMove);
+            easingCanvas.addEventListener('mouseup', handleMouseUp);
+            easingCanvas.addEventListener('mouseleave', handleMouseUp);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            drawEasingCurve();
         }
 
         // Animation loop
@@ -1097,6 +1186,7 @@
             drawPattern();
             scaleCanvasToFit();
             setupEventListeners();
+            initEasingEditor();
             window.addEventListener('resize', scaleCanvasToFit);
         }
 
@@ -1285,70 +1375,6 @@
                 staggerValue.value = state.stagger + '%';
             });
 
-            // Easing canvas interaction
-            const easingCanvas = document.getElementById('easingCanvas');
-            let draggingPoint = null;
-
-            easingCanvas.addEventListener('mousedown', (e) => {
-                const rect = easingCanvas.getBoundingClientRect();
-                const scaleX = easingCanvas.width / rect.width;
-                const scaleY = easingCanvas.height / rect.height;
-                const mx = (e.clientX - rect.left) * scaleX;
-                const my = (e.clientY - rect.top) * scaleY;
-
-                const padding = 10;
-                const graphW = easingCanvas.width - 2 * padding;
-                const graphH = easingCanvas.height - 2 * padding;
-
-                const p1x = padding + state.easingP1.x * graphW;
-                const p1y = easingCanvas.height - padding - state.easingP1.y * graphH;
-                const p2x = padding + state.easingP2.x * graphW;
-                const p2y = easingCanvas.height - padding - state.easingP2.y * graphH;
-
-                const dist1 = Math.sqrt((mx - p1x) ** 2 + (my - p1y) ** 2);
-                const dist2 = Math.sqrt((mx - p2x) ** 2 + (my - p2y) ** 2);
-
-                if (dist1 < 15) draggingPoint = 'p1';
-                else if (dist2 < 15) draggingPoint = 'p2';
-            });
-
-            easingCanvas.addEventListener('mousemove', (e) => {
-                if (!draggingPoint) return;
-
-                const rect = easingCanvas.getBoundingClientRect();
-                const scaleX = easingCanvas.width / rect.width;
-                const scaleY = easingCanvas.height / rect.height;
-                const mx = (e.clientX - rect.left) * scaleX;
-                const my = (e.clientY - rect.top) * scaleY;
-
-                const padding = 10;
-                const graphW = easingCanvas.width - 2 * padding;
-                const graphH = easingCanvas.height - 2 * padding;
-
-                const x = Math.max(0, Math.min(1, (mx - padding) / graphW));
-                const y = Math.max(0, Math.min(1, (easingCanvas.height - padding - my) / graphH));
-
-                if (draggingPoint === 'p1') {
-                    state.easingP1.x = x;
-                    state.easingP1.y = y;
-                } else if (draggingPoint === 'p2') {
-                    state.easingP2.x = x;
-                    state.easingP2.y = y;
-                }
-
-                drawEasingCurve();
-            });
-
-            easingCanvas.addEventListener('mouseup', () => {
-                draggingPoint = null;
-            });
-
-            easingCanvas.addEventListener('mouseleave', () => {
-                draggingPoint = null;
-            });
-
-            // Initialize easing curve display
-            drawEasingCurve();
         }
 
         function generateSVG() {
