@@ -728,6 +728,10 @@
         const canvas = document.getElementById('patternCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Offscreen canvas for double buffering
+        const offscreen = document.createElement('canvas');
+        const offCtx = offscreen.getContext('2d');
+
         const defaultValues = {
             weight: 50,
             zoom: 100,
@@ -1087,9 +1091,19 @@
             canvas.width = state.canvasWidth;
             canvas.height = state.canvasHeight;
 
+            // Use offscreen canvas during animation for double buffering
+            const useOffscreen = state.isAnimating;
+            let drawCtx = ctx;
+
+            if (useOffscreen) {
+                offscreen.width = state.canvasWidth;
+                offscreen.height = state.canvasHeight;
+                drawCtx = offCtx;
+            }
+
             // Fill background
-            ctx.fillStyle = '#' + state.secondaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawCtx.fillStyle = '#' + state.secondaryColor;
+            drawCtx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pattern parameters
             const zoomFactor = state.zoom / 50;
@@ -1206,28 +1220,22 @@
             }
 
             if (state.isAnimating) {
-                // During animation: draw raw shapes (no union, no rounding) to debug
-                ctx.fillStyle = '#' + state.primaryColor;
+                // During animation: draw raw shapes (no union, no rounding)
+                drawCtx.fillStyle = '#' + state.primaryColor;
                 for (const poly of polygons) {
-                    // Validate coordinates
                     const coords = poly[0];
-                    let valid = true;
-                    for (const pt of coords) {
-                        if (!Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) {
-                            console.error('Invalid polygon coordinates:', coords);
-                            valid = false;
-                            break;
-                        }
-                    }
-                    if (!valid) continue;
+                    drawCtx.beginPath();
+                    drawCtx.moveTo(coords[0][0], coords[0][1]);
+                    drawCtx.lineTo(coords[1][0], coords[1][1]);
+                    drawCtx.lineTo(coords[2][0], coords[2][1]);
+                    drawCtx.lineTo(coords[3][0], coords[3][1]);
+                    drawCtx.closePath();
+                    drawCtx.fill();
+                }
 
-                    ctx.beginPath();
-                    ctx.moveTo(coords[0][0], coords[0][1]);
-                    ctx.lineTo(coords[1][0], coords[1][1]);
-                    ctx.lineTo(coords[2][0], coords[2][1]);
-                    ctx.lineTo(coords[3][0], coords[3][1]);
-                    ctx.closePath();
-                    ctx.fill();
+                // Copy offscreen to visible canvas
+                if (useOffscreen) {
+                    ctx.drawImage(offscreen, 0, 0);
                 }
             } else {
                 // Static: use boolean union with rounded corners
@@ -1236,39 +1244,35 @@
                     united = polygonClipping.union(...polygons);
                 } catch (e) {
                     console.error('Boolean union failed:', e);
-                    ctx.fillStyle = '#' + state.primaryColor;
+                    drawCtx.fillStyle = '#' + state.primaryColor;
                     for (const poly of polygons) {
-                        ctx.beginPath();
-                        ctx.moveTo(poly[0][0][0], poly[0][0][1]);
+                        drawCtx.beginPath();
+                        drawCtx.moveTo(poly[0][0][0], poly[0][0][1]);
                         for (let i = 1; i < poly[0].length; i++) {
-                            ctx.lineTo(poly[0][i][0], poly[0][i][1]);
+                            drawCtx.lineTo(poly[0][i][0], poly[0][i][1]);
                         }
-                        ctx.closePath();
-                        ctx.fill();
+                        drawCtx.closePath();
+                        drawCtx.fill();
                     }
                     scaleCanvasToFit();
                     return;
                 }
 
-                ctx.fillStyle = '#' + state.primaryColor;
+                drawCtx.fillStyle = '#' + state.primaryColor;
                 for (const multiPolygon of united) {
                     for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
                         let ring = multiPolygon[ringIdx];
                         ring = roundPolygonCorners(ring, cornerRadius);
                         if (ring.length === 0) continue;
-                        ctx.beginPath();
-                        ctx.moveTo(ring[0][0], ring[0][1]);
+                        drawCtx.beginPath();
+                        drawCtx.moveTo(ring[0][0], ring[0][1]);
                         for (let i = 1; i < ring.length; i++) {
-                            ctx.lineTo(ring[i][0], ring[i][1]);
+                            drawCtx.lineTo(ring[i][0], ring[i][1]);
                         }
-                        ctx.closePath();
-                        ctx.fill();
+                        drawCtx.closePath();
+                        drawCtx.fill();
                     }
                 }
-            }
-
-            // Only scale when not animating to avoid timing issues
-            if (!state.isAnimating) {
                 scaleCanvasToFit();
             }
         }
