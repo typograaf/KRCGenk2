@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRCG Pattern Generator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
     <style>
         @font-face {
             font-family: 'ABC Arizona Sans';
@@ -691,69 +690,23 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Corner radius for rounded corners
-            const r = Math.max(4, stepSize * 0.12);
+            ctx.fillStyle = '#' + state.primaryColor;
 
-            // Small overlap to ensure shapes in same column unite properly
-            const overlapExtra = 2;
-
-            // Setup Paper.js
-            paper.setup(canvas);
-
-            // Create all parallelograms as Paper.js paths
-            let compound = null;
-
+            // Draw parallelograms
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
 
-                    // Create parallelogram path with slight extra height for overlap
-                    const path = new paper.Path({
-                        segments: [
-                            [x, baseY + paraHeight + overlapExtra],      // bottom-left (extended)
-                            [x, baseY - overlapExtra],                   // top-left (extended)
-                            [x + stepSize, baseY - stepSize - overlapExtra], // top-right (extended)
-                            [x + stepSize, baseY - stepSize + paraHeight + overlapExtra] // bottom-right (extended)
-                        ],
-                        closed: true
-                    });
-
-                    // Unite with existing compound
-                    if (compound === null) {
-                        compound = path;
-                    } else {
-                        const newCompound = compound.unite(path);
-                        compound.remove();
-                        path.remove();
-                        compound = newCompound;
-                    }
+                    ctx.beginPath();
+                    ctx.moveTo(x, baseY + paraHeight);
+                    ctx.lineTo(x, baseY);
+                    ctx.lineTo(x + stepSize, baseY - stepSize);
+                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);
+                    ctx.closePath();
+                    ctx.fill();
                 }
             }
-
-            // Apply corner rounding to the compound path
-            if (compound) {
-                // Smooth/round the corners
-                for (let i = 0; i < compound.segments.length; i++) {
-                    const segment = compound.segments[i];
-                    segment.smooth({ type: 'geometric', factor: r / 20 });
-                }
-
-                // Draw the compound path
-                compound.fillColor = '#' + state.primaryColor;
-
-                // Render to canvas
-                paper.view.draw();
-
-                // Clean up
-                compound.remove();
-            }
-
-            // Draw background behind (Paper.js clears the canvas)
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = '#' + state.secondaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = 'source-over';
 
             scaleCanvasToFit();
         }
