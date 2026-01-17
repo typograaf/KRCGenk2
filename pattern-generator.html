@@ -763,17 +763,20 @@
             // Overlap must scale with zoom to ensure shapes always connect properly
             const overlap = stepSize * 0.05;
 
+            // Round to fixed precision to avoid floating point issues in boolean union
+            const round = (v) => Math.round(v * 10) / 10;
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
 
-                    // Parallelogram vertices (clockwise)
+                    // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
-                        [x, baseY + paraHeight + overlap],
-                        [x, baseY - overlap],
-                        [x + stepSize, baseY - stepSize - overlap],
-                        [x + stepSize, baseY - stepSize + paraHeight + overlap]
+                        [round(x - overlap), round(baseY + paraHeight + overlap)],
+                        [round(x - overlap), round(baseY - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize + paraHeight + overlap)]
                     ]];
                     polygons.push(poly);
                 }
@@ -1002,7 +1005,8 @@
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             const cornerRadius = Math.max(8, stepSize * 0.15);
-            const overlap = stepSize * 0.15;
+            const overlap = stepSize * 0.05;
+            const round = (v) => Math.round(v * 10) / 10;
 
             // Build polygons
             const polygons = [];
@@ -1012,10 +1016,10 @@
                     const baseY = row * effectiveRowSpacing + offsetY;
 
                     const poly = [[
-                        [x, baseY + paraHeight + overlap],
-                        [x, baseY - overlap],
-                        [x + stepSize, baseY - stepSize - overlap],
-                        [x + stepSize, baseY - stepSize + paraHeight + overlap]
+                        [round(x - overlap), round(baseY + paraHeight + overlap)],
+                        [round(x - overlap), round(baseY - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize + paraHeight + overlap)]
                     ]];
                     polygons.push(poly);
                 }
