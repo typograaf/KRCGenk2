@@ -716,12 +716,12 @@
                     const paraWidth = cellWidth * weightRatio;
 
                     // Draw parallelogram
-                    // The shape leans to the right as it goes up
+                    // The shape leans to the left as it goes up
                     ctx.beginPath();
-                    ctx.moveTo(baseX + rowShift, baseY);                           // top-left
-                    ctx.lineTo(baseX + rowShift + paraWidth, baseY);               // top-right
-                    ctx.lineTo(baseX + rowShift + paraWidth - shear, baseY + cellHeight); // bottom-right
-                    ctx.lineTo(baseX + rowShift - shear, baseY + cellHeight);      // bottom-left
+                    ctx.moveTo(baseX - rowShift, baseY);                           // top-left
+                    ctx.lineTo(baseX - rowShift + paraWidth, baseY);               // top-right
+                    ctx.lineTo(baseX - rowShift + paraWidth + shear, baseY + cellHeight); // bottom-right
+                    ctx.lineTo(baseX - rowShift + shear, baseY + cellHeight);      // bottom-left
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -921,10 +921,10 @@
                     const rowShift = row * shear;
                     const paraWidth = cellWidth * weightRatio;
 
-                    const x1 = baseX + rowShift;
-                    const x2 = baseX + rowShift + paraWidth;
-                    const x3 = baseX + rowShift + paraWidth - shear;
-                    const x4 = baseX + rowShift - shear;
+                    const x1 = baseX - rowShift;
+                    const x2 = baseX - rowShift + paraWidth;
+                    const x3 = baseX - rowShift + paraWidth + shear;
+                    const x4 = baseX - rowShift + shear;
 
                     paths += `<path d="M ${x1},${baseY} L ${x2},${baseY} L ${x3},${baseY + cellHeight} L ${x4},${baseY + cellHeight} Z"/>`;
                 }
