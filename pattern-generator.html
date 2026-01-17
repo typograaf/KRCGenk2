@@ -1188,9 +1188,15 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
+            // Visibility buffer for off-screen culling
+            const buffer = stepSize * 2;
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
+
+                    // Skip if completely off-screen horizontally
+                    if (x + stepSize < -buffer || x > canvas.width + buffer) continue;
 
                     // Calculate which VISUAL column this shape belongs to based on X position
                     // Use floor instead of round for consistent behavior at boundaries
@@ -1200,6 +1206,9 @@
                     const animY = getVisualColumnOffset(visualColIdx);
 
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
+
+                    // Skip if completely off-screen vertically
+                    if (baseY + paraHeight < -buffer || baseY - stepSize > canvas.height + buffer) continue;
 
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
@@ -1212,60 +1221,49 @@
                 }
             }
 
-            if (state.isAnimating) {
-                // During animation: draw raw shapes (no union, no rounding)
+            // Boolean union with rounded corners (both animation and static)
+            let united;
+            try {
+                united = polygonClipping.union(...polygons);
+            } catch (e) {
+                console.error('Boolean union failed:', e);
                 drawCtx.fillStyle = '#' + state.primaryColor;
                 drawCtx.beginPath();
                 for (const poly of polygons) {
-                    const coords = poly[0];
-                    drawCtx.moveTo(coords[0][0], coords[0][1]);
-                    drawCtx.lineTo(coords[1][0], coords[1][1]);
-                    drawCtx.lineTo(coords[2][0], coords[2][1]);
-                    drawCtx.lineTo(coords[3][0], coords[3][1]);
+                    drawCtx.moveTo(poly[0][0][0], poly[0][0][1]);
+                    for (let i = 1; i < poly[0].length; i++) {
+                        drawCtx.lineTo(poly[0][i][0], poly[0][i][1]);
+                    }
                     drawCtx.closePath();
                 }
                 drawCtx.fill();
+                if (!state.isAnimating) scaleCanvasToFit();
+                if (useOffscreen) ctx.drawImage(offscreen, 0, 0);
+                return;
+            }
 
-                // Copy offscreen to visible canvas
-                if (useOffscreen) {
-                    ctx.drawImage(offscreen, 0, 0);
-                }
-            } else {
-                // Static: use boolean union with rounded corners
-                let united;
-                try {
-                    united = polygonClipping.union(...polygons);
-                } catch (e) {
-                    console.error('Boolean union failed:', e);
-                    drawCtx.fillStyle = '#' + state.primaryColor;
-                    for (const poly of polygons) {
-                        drawCtx.beginPath();
-                        drawCtx.moveTo(poly[0][0][0], poly[0][0][1]);
-                        for (let i = 1; i < poly[0].length; i++) {
-                            drawCtx.lineTo(poly[0][i][0], poly[0][i][1]);
-                        }
-                        drawCtx.closePath();
-                        drawCtx.fill();
+            // Draw all united polygons with rounded corners as single path
+            drawCtx.fillStyle = '#' + state.primaryColor;
+            drawCtx.beginPath();
+            for (const multiPolygon of united) {
+                for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
+                    let ring = multiPolygon[ringIdx];
+                    ring = roundPolygonCorners(ring, cornerRadius);
+                    if (ring.length === 0) continue;
+                    drawCtx.moveTo(ring[0][0], ring[0][1]);
+                    for (let i = 1; i < ring.length; i++) {
+                        drawCtx.lineTo(ring[i][0], ring[i][1]);
                     }
-                    scaleCanvasToFit();
-                    return;
+                    drawCtx.closePath();
                 }
+            }
+            drawCtx.fill();
 
-                drawCtx.fillStyle = '#' + state.primaryColor;
-                for (const multiPolygon of united) {
-                    for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
-                        let ring = multiPolygon[ringIdx];
-                        ring = roundPolygonCorners(ring, cornerRadius);
-                        if (ring.length === 0) continue;
-                        drawCtx.beginPath();
-                        drawCtx.moveTo(ring[0][0], ring[0][1]);
-                        for (let i = 1; i < ring.length; i++) {
-                            drawCtx.lineTo(ring[i][0], ring[i][1]);
-                        }
-                        drawCtx.closePath();
-                        drawCtx.fill();
-                    }
-                }
+            // Copy offscreen to visible canvas during animation
+            if (useOffscreen) {
+                ctx.drawImage(offscreen, 0, 0);
+            }
+            if (!state.isAnimating) {
                 scaleCanvasToFit();
             }
         }
