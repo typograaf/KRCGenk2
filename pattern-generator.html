@@ -31,7 +31,7 @@
             background: #001550;
             color: #82CDFF;
             display: flex;
-            gap: 24px;
+            gap: 12px;
             padding: 24px;
         }
 
@@ -103,7 +103,7 @@
         .color-section {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 12px;
         }
 
         .color-swatches {
@@ -309,7 +309,7 @@
         .slider-panel {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 12px;
         }
 
         /* Weight label row */
@@ -1461,6 +1461,35 @@
                     staggerSlider.value = val;
                 }
                 staggerValue.value = state.stagger + '%';
+            });
+
+            // Arrow key support for all slider value inputs (shift = 10x)
+            const sliderConfigs = [
+                { value: weightValue, slider: weightSlider, key: 'weight', suffix: '%', draw: true },
+                { value: zoomValue, slider: zoomSlider, key: 'zoom', suffix: '%', draw: true },
+                { value: offsetXValue, slider: offsetXSlider, key: 'offsetX', suffix: '', draw: true },
+                { value: offsetYValue, slider: offsetYSlider, key: 'offsetY', suffix: '', draw: true },
+                { value: speedValue, slider: speedSlider, key: 'speed', suffix: '%', draw: false },
+                { value: staggerValue, slider: staggerSlider, key: 'stagger', suffix: '%', draw: false }
+            ];
+
+            sliderConfigs.forEach(({ value, slider, key, suffix, draw }) => {
+                value.addEventListener('keydown', e => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const baseStep = parseFloat(slider.step) || 1;
+                        const step = e.shiftKey ? baseStep * 10 : baseStep;
+                        const min = parseFloat(slider.min);
+                        const max = parseFloat(slider.max);
+                        const currentValue = parseFloat(value.value.replace(suffix, '')) || 0;
+                        const delta = e.key === 'ArrowUp' ? step : -step;
+                        const newValue = Math.max(min, Math.min(max, currentValue + delta));
+                        state[key] = newValue;
+                        slider.value = newValue;
+                        value.value = newValue + suffix;
+                        if (draw) drawPattern();
+                    }
+                });
             });
 
             // Easing input
