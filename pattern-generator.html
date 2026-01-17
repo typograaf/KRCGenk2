@@ -667,8 +667,8 @@
             ctx.fillStyle = '#' + state.secondaryColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Pattern parameters (zoom is inverted: higher slider = smaller pattern)
-            const zoomFactor = (225 - state.zoom) / 100;
+            // Pattern parameters
+            const zoomFactor = state.zoom / 50;  // 25% = 0.5x, 200% = 4x zoom
             const baseStepSize = 60;  // Base step size at 100% zoom
             const stepSize = baseStepSize * zoomFactor;  // Zoom scales the step size
             const stripeSpacing = 120 * zoomFactor;  // Fixed column distance so shapes touch horizontally
@@ -871,7 +871,7 @@
         }
 
         function generateSVG() {
-            const zoomFactor = (225 - state.zoom) / 100;
+            const zoomFactor = state.zoom / 50;
             const baseStepSize = 60;
             const stepSize = baseStepSize * zoomFactor;
             const stripeSpacing = 120 * zoomFactor;
