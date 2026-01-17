@@ -994,8 +994,8 @@
             const deltaTime = lastTime ? (currentTime - lastTime) / 1000 : 0;
             lastTime = currentTime;
 
-            // Speed controls how fast the animation cycles (1-100 maps to 0.2-3 cycles per second)
-            const cyclesPerSecond = 0.2 + (state.speed / 100) * 2.8;
+            // Speed controls how fast the animation cycles (1-100 maps to 0.02-0.5 cycles per second)
+            const cyclesPerSecond = 0.02 + (state.speed / 100) * 0.48;
             state.animationTime += deltaTime * cyclesPerSecond;
 
             drawPattern();
@@ -1129,8 +1129,8 @@
             // Animation parameters
             // How far column moves in one complete cycle
             const travelDistance = canvas.height;
-            // Stagger: phase offset between visual columns (0% = all same, 100% = full cycle offset)
-            const maxPhaseOffset = state.stagger / 100;
+            // Stagger: phase offset between visual columns (0% = all same, 100% = 10% cycle offset)
+            const maxPhaseOffset = state.stagger / 1000;
             // Count visible columns on screen for stagger distribution
             const visibleCols = Math.ceil(canvas.width / stripeSpacing) + 4;
 
