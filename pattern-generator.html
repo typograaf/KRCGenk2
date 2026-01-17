@@ -987,8 +987,8 @@
             // Travel distance = one row spacing, so shapes seamlessly replace each other
             const travelDistance = Math.abs(effectiveRowSpacing);
             const totalCols = cols * 2;
-            // Stagger: delay in seconds between first and last column starting
-            const maxStaggerDelay = (state.stagger / 100) * 2; // 0-2 seconds of stagger
+            // Stagger: phase offset between columns (0% = all same, 100% = full wave across screen)
+            const maxPhaseOffset = (state.stagger / 100) * travelDistance;
 
             // Pre-calculate animation offset for each column (all shapes in same column move together)
             const columnOffsets = {};
@@ -999,15 +999,12 @@
                 }
 
                 const colIndex = col + cols;
-                // Stagger delay: first column starts at time 0, last column starts later
-                const colDelay = (colIndex / totalCols) * maxStaggerDelay;
+                // Phase offset: each column has a fixed offset creating a wave pattern
+                const phaseOffset = (colIndex / totalCols) * maxPhaseOffset;
 
-                // Time since this column started animating
-                const colTime = Math.max(0, state.animationTime - colDelay);
-
-                // Continuous upward movement - no wrapping needed
-                // Extra rows drawn above/below canvas handle the seamless replacement
-                columnOffsets[col] = -colTime * travelDistance;
+                // All columns move at same speed, but with different starting phases
+                const baseOffset = state.animationTime * travelDistance;
+                columnOffsets[col] = -(baseOffset + phaseOffset);
             }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
