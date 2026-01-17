@@ -986,25 +986,30 @@
             // Animation: calculate travel distance (one full cycle moves shapes by effectiveRowSpacing)
             const travelDistance = Math.abs(effectiveRowSpacing) * 2;
             const totalCols = cols * 2;
-            const staggerAmount = state.stagger / 100; // 0 to 1
+            // Stagger: 0% = all columns together, 100% = full wave across columns
+            const maxStaggerTime = state.stagger / 100; // max delay spread across all columns
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     // Calculate per-column animation offset
                     let animY = 0;
                     if (state.isAnimating || state.animationTime > 0) {
-                        // Normalize column index for stagger calculation
+                        // Column index from left (0) to right (totalCols)
                         const colIndex = col + cols;
-                        const colProgress = colIndex / totalCols;
 
-                        // Apply stagger: each column starts at a different phase
-                        const staggerDelay = colProgress * staggerAmount;
-                        const colTime = (state.animationTime - staggerDelay) % 1;
-                        const normalizedTime = colTime < 0 ? colTime + 1 : colTime;
+                        // Each column has a delay: first column starts first, last column starts last
+                        const colDelay = (colIndex / totalCols) * maxStaggerTime;
+
+                        // Calculate this column's local time (accounting for delay)
+                        let colTime = state.animationTime - colDelay;
+
+                        // Wrap to 0-1 range for looping animation
+                        colTime = colTime % 1;
+                        if (colTime < 0) colTime += 1;
 
                         // Apply easing
                         const easedProgress = cubicBezier(
-                            normalizedTime,
+                            colTime,
                             state.easingP1.x, state.easingP1.y,
                             state.easingP2.x, state.easingP2.y
                         );
