@@ -1066,7 +1066,7 @@
                 const p2 = [curr[0] + u2x * maxR, curr[1] + u2y * maxR];
 
                 // Add arc points (simple approximation with a few segments)
-                const arcSegments = 4;
+                const arcSegments = 3;
                 for (let j = 0; j <= arcSegments; j++) {
                     const t = j / arcSegments;
                     // Quadratic bezier-like interpolation through the corner
@@ -1115,10 +1115,9 @@
             // Animation travel distance = 10 tiles per cycle
             const travelDistance = effectiveRowSpacing * 10;
 
-            // Need extra rows to cover animation offset and square canvas corners
-            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 25;
-            // Extra cols needed because diagonal pattern shifts x based on row
-            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 15;
+            // Row/col range (visibility filter will skip shapes outside view)
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 15;
+            const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 10;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
             const cornerRadius = Math.max(3, stepSize * 0.05);
@@ -1169,6 +1168,9 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
+            // Buffer for visibility check (shapes slightly outside view still needed for union)
+            const buffer = stepSize * 2;
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
@@ -1180,6 +1182,17 @@
                     const animY = getVisualColumnOffset(visualColIdx);
 
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
+
+                    // Skip shapes completely outside visible area (with buffer)
+                    const minY = baseY - stepSize;
+                    const maxY = baseY + paraHeight;
+                    const minX = x;
+                    const maxX = x + stepSize;
+
+                    if (maxX < -buffer || minX > canvas.width + buffer ||
+                        maxY < -buffer || minY > canvas.height + buffer) {
+                        continue;
+                    }
 
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
