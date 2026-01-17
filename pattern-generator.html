@@ -1116,8 +1116,8 @@
             const numRepeats = Math.max(1, Math.round(canvas.height / effectiveRowSpacing));
             const travelDistance = numRepeats * effectiveRowSpacing;
 
-            // Need extra rows to cover animation offset (support many cycles)
-            const rowsNeeded = Math.ceil((canvas.height + travelDistance * 20) / Math.max(effectiveRowSpacing, 1)) + 10;
+            // Need extra rows to cover animation offset
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 5;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
@@ -1154,21 +1154,22 @@
                 const normalizedIdx = visualColIdx / visibleCols;
                 const phaseOffset = normalizedIdx * maxPhaseOffset;
 
-                // Continuous progress (no modulo on input)
-                const totalProgress = state.animationTime + phaseOffset;
-                const wholeCycles = Math.floor(totalProgress);
-                const partialCycle = totalProgress - wholeCycles;
+                // Cycle progress (0 to 1)
+                const cycleProgress = (state.animationTime + phaseOffset) % 1;
 
-                // Apply easing to partial cycle
-                const easedPartial = cubicBezier(
-                    partialCycle,
+                // Ping-pong: goes up (0→0.5) then back down (0.5→1) for seamless loop
+                const pingPong = cycleProgress < 0.5
+                    ? cycleProgress * 2
+                    : 2 - cycleProgress * 2;
+
+                // Apply easing
+                const easedProgress = cubicBezier(
+                    pingPong,
                     state.easingP1.x, state.easingP1.y,
                     state.easingP2.x, state.easingP2.y
                 );
 
-                // Total traveled distance (continuous, no wrap)
-                const totalDistance = (wholeCycles + easedPartial) * travelDistance;
-                visualColumnOffsets[visualColIdx] = -totalDistance;
+                visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
                 return visualColumnOffsets[visualColIdx];
             }
 
