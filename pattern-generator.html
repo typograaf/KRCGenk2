@@ -752,8 +752,8 @@
             // Build all parallelograms as polygons for boolean union
             const polygons = [];
 
-            // Add small overlap to ensure shapes connect for boolean union
-            const overlap = 2;
+            // Overlap must scale with zoom to ensure shapes always connect properly
+            const overlap = stepSize * 0.05;
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
@@ -994,7 +994,7 @@
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             const cornerRadius = Math.max(8, stepSize * 0.15);
-            const overlap = 2;
+            const overlap = stepSize * 0.05;
 
             // Build polygons
             const polygons = [];
