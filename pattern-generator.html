@@ -622,6 +622,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
     <script>
         const canvas = document.getElementById('patternCanvas');
         const ctx = canvas.getContext('2d');
@@ -659,6 +660,61 @@
             });
         }
 
+        // Helper: round corners of a polygon ring using arc segments
+        function roundPolygonCorners(ring, radius) {
+            if (ring.length < 3) return ring;
+
+            const result = [];
+            const n = ring.length;
+
+            for (let i = 0; i < n; i++) {
+                const prev = ring[(i - 1 + n) % n];
+                const curr = ring[i];
+                const next = ring[(i + 1) % n];
+
+                // Vectors from current point to neighbors
+                const v1x = prev[0] - curr[0];
+                const v1y = prev[1] - curr[1];
+                const v2x = next[0] - curr[0];
+                const v2y = next[1] - curr[1];
+
+                const len1 = Math.sqrt(v1x * v1x + v1y * v1y);
+                const len2 = Math.sqrt(v2x * v2x + v2y * v2y);
+
+                if (len1 < 0.001 || len2 < 0.001) {
+                    result.push(curr);
+                    continue;
+                }
+
+                // Normalize
+                const u1x = v1x / len1, u1y = v1y / len1;
+                const u2x = v2x / len2, u2y = v2y / len2;
+
+                // Limit radius based on edge lengths
+                const maxR = Math.min(radius, len1 / 2, len2 / 2);
+
+                // Points where arc starts and ends
+                const p1 = [curr[0] + u1x * maxR, curr[1] + u1y * maxR];
+                const p2 = [curr[0] + u2x * maxR, curr[1] + u2y * maxR];
+
+                // Add arc points (simple approximation with a few segments)
+                const arcSegments = 4;
+                for (let j = 0; j <= arcSegments; j++) {
+                    const t = j / arcSegments;
+                    // Quadratic bezier-like interpolation through the corner
+                    const ax = (1 - t) * p1[0] + t * curr[0];
+                    const ay = (1 - t) * p1[1] + t * curr[1];
+                    const bx = (1 - t) * curr[0] + t * p2[0];
+                    const by = (1 - t) * curr[1] + t * p2[1];
+                    const px = (1 - t) * ax + t * bx;
+                    const py = (1 - t) * ay + t * by;
+                    result.push([px, py]);
+                }
+            }
+
+            return result;
+        }
+
         function drawPattern() {
             canvas.width = state.canvasWidth;
             canvas.height = state.canvasHeight;
@@ -690,22 +746,74 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 25;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            ctx.fillStyle = '#' + state.primaryColor;
+            // Corner radius (like Cavalry's bevel radius of 30, scaled)
+            const cornerRadius = Math.max(8, stepSize * 0.15);
 
-            // Draw parallelograms
+            // Build all parallelograms as polygons for boolean union
+            const polygons = [];
+
+            // Add small overlap to ensure shapes connect for boolean union
+            const overlap = 2;
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
 
+                    // Parallelogram vertices (clockwise)
+                    const poly = [[
+                        [x, baseY + paraHeight + overlap],
+                        [x, baseY - overlap],
+                        [x + stepSize, baseY - stepSize - overlap],
+                        [x + stepSize, baseY - stepSize + paraHeight + overlap]
+                    ]];
+                    polygons.push(poly);
+                }
+            }
+
+            // Perform boolean union using polygon-clipping library
+            let united;
+            try {
+                united = polygonClipping.union(...polygons);
+            } catch (e) {
+                console.error('Boolean union failed:', e);
+                // Fallback: draw individual shapes
+                ctx.fillStyle = '#' + state.primaryColor;
+                for (const poly of polygons) {
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY + paraHeight);
-                    ctx.lineTo(x, baseY);
-                    ctx.lineTo(x + stepSize, baseY - stepSize);
-                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);
+                    ctx.moveTo(poly[0][0][0], poly[0][0][1]);
+                    for (let i = 1; i < poly[0].length; i++) {
+                        ctx.lineTo(poly[0][i][0], poly[0][i][1]);
+                    }
                     ctx.closePath();
                     ctx.fill();
                 }
+                scaleCanvasToFit();
+                return;
+            }
+
+            // Draw the united result with rounded corners
+            ctx.fillStyle = '#' + state.primaryColor;
+
+            for (const multiPolygon of united) {
+                ctx.beginPath();
+
+                for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
+                    let ring = multiPolygon[ringIdx];
+
+                    // Apply corner rounding
+                    ring = roundPolygonCorners(ring, cornerRadius);
+
+                    if (ring.length === 0) continue;
+
+                    ctx.moveTo(ring[0][0], ring[0][1]);
+                    for (let i = 1; i < ring.length; i++) {
+                        ctx.lineTo(ring[i][0], ring[i][1]);
+                    }
+                    ctx.closePath();
+                }
+
+                ctx.fill();
             }
 
             scaleCanvasToFit();
@@ -869,7 +977,6 @@
             const stepSize = baseStepSize * zoomFactor;
             const stripeSpacing = 120 * zoomFactor;
 
-            // Interpolate values based on weight slider (0-100)
             const t = state.weight / 100;
             const weightRatio = (5 + t * (17 - 5)) / 100;
             const rowDist = 72 + t * (75 - 72);
@@ -886,19 +993,59 @@
             const rowsNeeded = Math.ceil(state.canvasHeight / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
-            let paths = '';
+            const cornerRadius = Math.max(8, stepSize * 0.15);
+            const overlap = 2;
 
+            // Build polygons
+            const polygons = [];
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * (rowSpacing + vGap) + offsetY;
+                    const baseY = row * effectiveRowSpacing + offsetY;
 
-                    const bl = { x: x, y: baseY + paraHeight };
-                    const tl = { x: x, y: baseY };
-                    const tr = { x: x + stepSize, y: baseY - stepSize };
-                    const br = { x: x + stepSize, y: baseY - stepSize + paraHeight };
+                    const poly = [[
+                        [x, baseY + paraHeight + overlap],
+                        [x, baseY - overlap],
+                        [x + stepSize, baseY - stepSize - overlap],
+                        [x + stepSize, baseY - stepSize + paraHeight + overlap]
+                    ]];
+                    polygons.push(poly);
+                }
+            }
 
-                    paths += `<path d="M ${bl.x},${bl.y} L ${tl.x},${tl.y} L ${tr.x},${tr.y} L ${br.x},${br.y} Z"/>`;
+            // Boolean union
+            let united;
+            try {
+                united = polygonClipping.union(...polygons);
+            } catch (e) {
+                // Fallback to individual shapes
+                let paths = '';
+                for (const poly of polygons) {
+                    const ring = poly[0];
+                    paths += `<path d="M ${ring[0][0]},${ring[0][1]} L ${ring[1][0]},${ring[1][1]} L ${ring[2][0]},${ring[2][1]} L ${ring[3][0]},${ring[3][1]} Z"/>`;
+                }
+                return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${state.canvasWidth}" height="${state.canvasHeight}" viewBox="0 0 ${state.canvasWidth} ${state.canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${state.canvasWidth}" height="${state.canvasHeight}" fill="#${state.secondaryColor}"/>
+    <g fill="#${state.primaryColor}">${paths}</g>
+</svg>`;
+            }
+
+            // Generate SVG paths from united polygons with rounded corners
+            let pathsStr = '';
+            for (const multiPolygon of united) {
+                let d = '';
+                for (const ring of multiPolygon) {
+                    const rounded = roundPolygonCorners(ring, cornerRadius);
+                    if (rounded.length === 0) continue;
+                    d += `M ${rounded[0][0].toFixed(2)},${rounded[0][1].toFixed(2)} `;
+                    for (let i = 1; i < rounded.length; i++) {
+                        d += `L ${rounded[i][0].toFixed(2)},${rounded[i][1].toFixed(2)} `;
+                    }
+                    d += 'Z ';
+                }
+                if (d) {
+                    pathsStr += `<path d="${d.trim()}"/>`;
                 }
             }
 
@@ -906,7 +1053,7 @@
 <svg width="${state.canvasWidth}" height="${state.canvasHeight}" viewBox="0 0 ${state.canvasWidth} ${state.canvasHeight}" xmlns="http://www.w3.org/2000/svg">
     <rect width="${state.canvasWidth}" height="${state.canvasHeight}" fill="#${state.secondaryColor}"/>
     <g fill="#${state.primaryColor}">
-        ${paths}
+        ${pathsStr}
     </g>
 </svg>`;
         }
