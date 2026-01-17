@@ -761,7 +761,7 @@
             const polygons = [];
 
             // Overlap must scale with zoom to ensure shapes always connect properly
-            const overlap = stepSize * 0.05;
+            const overlap = stepSize * 0.02;
 
             // Round to fixed precision to avoid floating point issues in boolean union
             const round = (v) => Math.round(v * 10) / 10;
@@ -1005,7 +1005,7 @@
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             const cornerRadius = Math.max(2, stepSize * 0.0375);
-            const overlap = stepSize * 0.05;
+            const overlap = stepSize * 0.02;
             const round = (v) => Math.round(v * 10) / 10;
 
             // Build polygons
