@@ -533,11 +533,11 @@
                     <div class="slider-group">
                         <div class="slider-header">
                             <span class="slider-label">Pattern Scale</span>
-                            <input type="text" class="slider-value" id="scaleValue" value="40">
+                            <input type="text" class="slider-value" id="scaleValue" value="120">
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="scaleSlider" min="10" max="100" value="40">
+                                <input type="range" class="slider" id="scaleSlider" min="40" max="300" value="120">
                             </div>
                             <button class="reset-btn" data-reset="scale">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -549,11 +549,11 @@
                     <div class="slider-group">
                         <div class="slider-header">
                             <span class="slider-label">Step Size</span>
-                            <input type="text" class="slider-value" id="stepValue" value="8">
+                            <input type="text" class="slider-value" id="stepValue" value="20">
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="stepSlider" min="2" max="20" value="8">
+                                <input type="range" class="slider" id="stepSlider" min="5" max="60" value="20">
                             </div>
                             <button class="reset-btn" data-reset="step">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -644,8 +644,8 @@
 
         const defaultValues = {
             weight: 50,
-            scale: 40,
-            step: 8,
+            scale: 120,
+            step: 20,
             offsetX: 0,
             offsetY: 0
         };
@@ -656,8 +656,8 @@
             primaryColor: '1f3ab6',
             secondaryColor: 'FFFFFF',
             weight: 50,
-            scale: 40,
-            step: 8,
+            scale: 120,
+            step: 20,
             offsetX: 0,
             offsetY: 0
         };
@@ -786,7 +786,7 @@
             });
             scaleValue.addEventListener('change', () => {
                 const val = parseInt(scaleValue.value);
-                if (!isNaN(val) && val >= 10 && val <= 100) {
+                if (!isNaN(val) && val >= 40 && val <= 300) {
                     state.scale = val;
                     scaleSlider.value = val;
                     drawPattern();
@@ -804,7 +804,7 @@
             });
             stepValue.addEventListener('change', () => {
                 const val = parseInt(stepValue.value);
-                if (!isNaN(val) && val >= 2 && val <= 20) {
+                if (!isNaN(val) && val >= 5 && val <= 60) {
                     state.step = val;
                     stepSlider.value = val;
                     drawPattern();
