@@ -569,7 +569,7 @@
                         </div>
                         <div class="slider-row">
                             <div class="slider-track">
-                                <input type="range" class="slider" id="vGapSlider" min="0" max="100" value="0">
+                                <input type="range" class="slider" id="vGapSlider" min="-50" max="100" value="0">
                             </div>
                             <button class="reset-btn" data-reset="vGap">
                                 <svg viewBox="0 0 7 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -838,7 +838,7 @@
             });
             vGapValue.addEventListener('change', () => {
                 const val = parseInt(vGapValue.value);
-                if (!isNaN(val) && val >= 0 && val <= 100) {
+                if (!isNaN(val) && val >= -50 && val <= 100) {
                     state.vGap = val;
                     vGapSlider.value = val;
                     drawPattern();
