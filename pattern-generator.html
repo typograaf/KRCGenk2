@@ -704,21 +704,21 @@
             for (let row = -2; row < rows; row++) {
                 for (let col = -2; col < cols; col++) {
                     const y = row * stepSize + offsetY;
-                    // Each row shifts right by stepSize to create diagonal
-                    const x = col * cellSize + (row * stepSize) + offsetX;
+                    const x = col * cellSize + offsetX;
 
                     // Draw parallelogram (primary color stripe)
+                    // Right edge is shifted UP by stepSize
                     const stripeWidth = cellSize * weightRatio;
 
                     ctx.beginPath();
-                    // Top-left
-                    ctx.moveTo(x, y);
-                    // Top-right (slanted)
-                    ctx.lineTo(x + stripeWidth, y);
-                    // Bottom-right (slanted down)
-                    ctx.lineTo(x + stripeWidth + stepSize, y + stepSize);
                     // Bottom-left
-                    ctx.lineTo(x + stepSize, y + stepSize);
+                    ctx.moveTo(x, y + stepSize);
+                    // Top-left
+                    ctx.lineTo(x, y);
+                    // Top-right (shifted up)
+                    ctx.lineTo(x + stripeWidth, y - stepSize);
+                    // Bottom-right (shifted up)
+                    ctx.lineTo(x + stripeWidth, y);
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -913,16 +913,16 @@
             for (let row = -2; row < rows; row++) {
                 for (let col = -2; col < cols; col++) {
                     const y = row * stepSize + offsetY;
-                    const x = col * cellSize + (row * stepSize) + offsetX;
+                    const x = col * cellSize + offsetX;
                     const stripeWidth = cellSize * weightRatio;
 
-                    // Parallelogram points
-                    const x1 = x;
-                    const x2 = x + stripeWidth;
-                    const x3 = x + stripeWidth + stepSize;
-                    const x4 = x + stepSize;
+                    // Parallelogram points - right edge shifted UP
+                    const blX = x, blY = y + stepSize;           // bottom-left
+                    const tlX = x, tlY = y;                       // top-left
+                    const trX = x + stripeWidth, trY = y - stepSize; // top-right (shifted up)
+                    const brX = x + stripeWidth, brY = y;         // bottom-right (shifted up)
 
-                    paths += `<path d="M ${x1},${y} L ${x2},${y} L ${x3},${y + stepSize} L ${x4},${y + stepSize} Z"/>`;
+                    paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
                 }
             }
 
