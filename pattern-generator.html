@@ -1111,7 +1111,13 @@
             const offsetY = (state.offsetY / 100) * rowSpacing;
 
             const effectiveRowSpacing = rowSpacing + vGap;
-            const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 25;
+
+            // Animation travel distance (approx screen height, exact multiple of pattern repeat)
+            const numRepeats = Math.max(1, Math.round(canvas.height / effectiveRowSpacing));
+            const travelDistance = numRepeats * effectiveRowSpacing;
+
+            // Need extra rows to cover animation offset
+            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 10;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
@@ -1126,10 +1132,6 @@
             // Round to fixed precision to avoid floating point issues in boolean union
             const round = (v) => Math.round(v * 10) / 10;
 
-            // Animation parameters
-            // Travel distance must be exact multiple of pattern repeat for seamless loop
-            const numRepeats = Math.max(1, Math.round(canvas.height / effectiveRowSpacing));
-            const travelDistance = numRepeats * effectiveRowSpacing;
             // Stagger: phase offset between visual columns (0% = all same, 100% = 10% cycle offset)
             const maxPhaseOffset = state.stagger / 1000;
             // Count visible columns on screen for stagger distribution
@@ -1152,22 +1154,18 @@
                 const normalizedIdx = visualColIdx / visibleCols;
                 const phaseOffset = normalizedIdx * maxPhaseOffset;
 
-                // Total progress (grows continuously)
-                const totalProgress = state.animationTime + phaseOffset;
-                const completedCycles = Math.floor(totalProgress);
-                const cycleProgress = totalProgress - completedCycles;
+                // Cycle progress with phase offset (wraps 0-1)
+                const cycleProgress = (state.animationTime + phaseOffset) % 1;
 
-                // Apply easing to current cycle progress
+                // Apply easing
                 const easedProgress = cubicBezier(
                     cycleProgress,
                     state.easingP1.x, state.easingP1.y,
                     state.easingP2.x, state.easingP2.y
                 );
 
-                // Continuous offset: completed cycles + eased current cycle
-                // Multiply by numRepeats for more travel (approx screen height) while staying seamless
-                const totalEased = completedCycles + easedProgress;
-                visualColumnOffsets[visualColIdx] = -totalEased * effectiveRowSpacing * numRepeats;
+                // Offset wraps within travelDistance (seamless because travelDistance = N * effectiveRowSpacing)
+                visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
                 return visualColumnOffsets[visualColIdx];
             }
 
