@@ -1168,6 +1168,8 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
+            const buffer = stepSize * 2;
+
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
@@ -1180,6 +1182,12 @@
 
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
 
+                    // Skip shapes outside visible area
+                    if (x + stepSize < -buffer || x > canvas.width + buffer ||
+                        baseY + paraHeight < -buffer || baseY - stepSize > canvas.height + buffer) {
+                        continue;
+                    }
+
                     // Parallelogram vertices with overlap on all edges for stable union
                     const poly = [[
                         [round(x - overlap), round(baseY + paraHeight + overlap)],
@@ -1191,49 +1199,53 @@
                 }
             }
 
-            // Perform boolean union using polygon-clipping library
-            let united;
-            try {
-                united = polygonClipping.union(...polygons);
-            } catch (e) {
-                console.error('Boolean union failed:', e);
-                // Fallback: draw individual shapes
+            if (state.isAnimating) {
+                // During animation: draw raw shapes (no union, no rounding) to debug
                 ctx.fillStyle = '#' + state.primaryColor;
                 for (const poly of polygons) {
                     ctx.beginPath();
                     ctx.moveTo(poly[0][0][0], poly[0][0][1]);
-                    for (let i = 1; i < poly[0].length; i++) {
-                        ctx.lineTo(poly[0][i][0], poly[0][i][1]);
-                    }
+                    ctx.lineTo(poly[0][1][0], poly[0][1][1]);
+                    ctx.lineTo(poly[0][2][0], poly[0][2][1]);
+                    ctx.lineTo(poly[0][3][0], poly[0][3][1]);
                     ctx.closePath();
                     ctx.fill();
                 }
-                scaleCanvasToFit();
-                return;
-            }
+            } else {
+                // Static: use boolean union with rounded corners
+                let united;
+                try {
+                    united = polygonClipping.union(...polygons);
+                } catch (e) {
+                    console.error('Boolean union failed:', e);
+                    ctx.fillStyle = '#' + state.primaryColor;
+                    for (const poly of polygons) {
+                        ctx.beginPath();
+                        ctx.moveTo(poly[0][0][0], poly[0][0][1]);
+                        for (let i = 1; i < poly[0].length; i++) {
+                            ctx.lineTo(poly[0][i][0], poly[0][i][1]);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    scaleCanvasToFit();
+                    return;
+                }
 
-            // Draw the united result with rounded corners
-            ctx.fillStyle = '#' + state.primaryColor;
-
-            for (const multiPolygon of united) {
-                for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
-                    let ring = multiPolygon[ringIdx];
-
-                    // Apply corner rounding only when not animating (to debug)
-                    if (!state.isAnimating) {
+                ctx.fillStyle = '#' + state.primaryColor;
+                for (const multiPolygon of united) {
+                    for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
+                        let ring = multiPolygon[ringIdx];
                         ring = roundPolygonCorners(ring, cornerRadius);
+                        if (ring.length === 0) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(ring[0][0], ring[0][1]);
+                        for (let i = 1; i < ring.length; i++) {
+                            ctx.lineTo(ring[i][0], ring[i][1]);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
                     }
-
-                    if (ring.length === 0) continue;
-
-                    // Draw each ring separately to avoid canvas batching issues
-                    ctx.beginPath();
-                    ctx.moveTo(ring[0][0], ring[0][1]);
-                    for (let i = 1; i < ring.length; i++) {
-                        ctx.lineTo(ring[i][0], ring[i][1]);
-                    }
-                    ctx.closePath();
-                    ctx.fill();
                 }
             }
 
