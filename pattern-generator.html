@@ -1214,16 +1214,16 @@
             if (state.isAnimating) {
                 // During animation: draw raw shapes (no union, no rounding)
                 drawCtx.fillStyle = '#' + state.primaryColor;
+                drawCtx.beginPath();
                 for (const poly of polygons) {
                     const coords = poly[0];
-                    drawCtx.beginPath();
                     drawCtx.moveTo(coords[0][0], coords[0][1]);
                     drawCtx.lineTo(coords[1][0], coords[1][1]);
                     drawCtx.lineTo(coords[2][0], coords[2][1]);
                     drawCtx.lineTo(coords[3][0], coords[3][1]);
                     drawCtx.closePath();
-                    drawCtx.fill();
                 }
+                drawCtx.fill();
 
                 // Copy offscreen to visible canvas
                 if (useOffscreen) {
