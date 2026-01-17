@@ -347,6 +347,24 @@
             cursor: crosshair;
         }
 
+        .easing-input {
+            width: 100%;
+            background: #1a2c62;
+            border: 1px solid #334473;
+            border-radius: 6px;
+            padding: 12px;
+            color: #82CDFF;
+            font-size: 8px;
+            font-family: inherit;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .easing-input:focus {
+            outline: none;
+            border-color: #82CDFF;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 900px) {
             html, body {
@@ -485,6 +503,11 @@
 
             .weight-label {
                 font-size: 11px;
+            }
+
+            .easing-input {
+                font-size: 11px;
+                padding: 14px;
             }
         }
     </style>
@@ -642,6 +665,7 @@
             <div class="output-buttons">
                 <button class="output-btn" id="exportPNG">PNG</button>
                 <button class="output-btn" id="exportSVG">SVG</button>
+                <button class="output-btn" id="exportMP4">MP4</button>
             </div>
         </div>
 
@@ -687,14 +711,19 @@
                 <div class="easing-group">
                     <span class="slider-label">Easing</span>
                     <div class="easing-container">
-                        <canvas id="easingCanvas" width="176" height="120"></canvas>
+                        <canvas id="easingCanvas" width="152" height="152"></canvas>
                     </div>
+                    <input type="text" class="easing-input" id="easingInput" value="0.40, 0.00, 0.20, 1.00">
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
+    <script type="module">
+        import * as mp4Muxer from 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm';
+        window.mp4Muxer = mp4Muxer;
+    </script>
     <script>
         const canvas = document.getElementById('patternCanvas');
         const ctx = canvas.getContext('2d');
@@ -847,6 +876,30 @@
             drawHandle(1, 1, false);
         }
 
+        function updateEasingInput() {
+            const input = document.getElementById('easingInput');
+            const p1x = Math.round(state.easingP1.x * 100) / 100;
+            const p1y = Math.round(state.easingP1.y * 100) / 100;
+            const p2x = Math.round(state.easingP2.x * 100) / 100;
+            const p2y = Math.round(state.easingP2.y * 100) / 100;
+            input.value = `${p1x.toFixed(2)}, ${p1y.toFixed(2)}, ${p2x.toFixed(2)}, ${p2y.toFixed(2)}`;
+        }
+
+        function parseEasingInput() {
+            const input = document.getElementById('easingInput');
+            const parts = input.value.split(',').map(s => parseFloat(s.trim()));
+
+            if (parts.length === 4 && parts.every(p => !isNaN(p))) {
+                state.easingP1.x = Math.max(0, Math.min(1, parts[0]));
+                state.easingP1.y = Math.max(0, Math.min(1, parts[1]));
+                state.easingP2.x = Math.max(0, Math.min(1, parts[2]));
+                state.easingP2.y = Math.max(0, Math.min(1, parts[3]));
+                drawEasingCurve();
+            } else {
+                updateEasingInput();
+            }
+        }
+
         function initEasingEditor() {
             easingCanvas = document.getElementById('easingCanvas');
             easingCtx = easingCanvas.getContext('2d');
@@ -916,6 +969,7 @@
                     state.easingP2.y = normalized.y;
                 }
 
+                updateEasingInput();
                 drawEasingCurve();
             };
 
@@ -1373,6 +1427,195 @@
                     staggerSlider.value = val;
                 }
                 staggerValue.value = state.stagger + '%';
+            });
+
+            // Easing input
+            document.getElementById('easingInput').addEventListener('blur', parseEasingInput);
+            document.getElementById('easingInput').addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    parseEasingInput();
+                    e.target.blur();
+                }
+            });
+
+            // MP4 Export
+            let isRecording = false;
+            let muxer = null;
+            let videoEncoder = null;
+            let frameNumber = 0;
+            let totalFrames = 0;
+
+            document.getElementById('exportMP4').addEventListener('click', async () => {
+                const btn = document.getElementById('exportMP4');
+
+                if (isRecording) {
+                    return;
+                }
+
+                isRecording = true;
+                frameNumber = 0;
+
+                // Calculate duration based on speed (one complete animation cycle)
+                const cycleDuration = 8000 / (state.speed / 50);
+                totalFrames = Math.ceil((cycleDuration / 1000) * 60);
+
+                btn.textContent = 'Exporting...';
+                btn.style.background = '#82CDFF';
+                btn.style.color = '#001550';
+                btn.disabled = true;
+
+                // Wait for mp4-muxer to load
+                await new Promise(resolve => {
+                    const check = () => {
+                        if (window.mp4Muxer) resolve();
+                        else setTimeout(check, 50);
+                    };
+                    check();
+                });
+
+                const { Muxer, ArrayBufferTarget } = window.mp4Muxer;
+
+                const videoWidth = state.canvasWidth;
+                const videoHeight = state.canvasHeight;
+
+                const target = new ArrayBufferTarget();
+                muxer = new Muxer({
+                    target,
+                    video: {
+                        codec: 'avc',
+                        width: videoWidth,
+                        height: videoHeight
+                    },
+                    fastStart: 'in-memory',
+                    firstTimestampBehavior: 'offset'
+                });
+
+                let encoderFailed = false;
+                videoEncoder = new VideoEncoder({
+                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    error: e => {
+                        console.error('Encoder error:', e);
+                        encoderFailed = true;
+                        isRecording = false;
+                        alert('Video encoder failed: ' + e.message);
+                        btn.textContent = 'MP4';
+                        btn.style.background = '';
+                        btn.style.color = '';
+                        btn.disabled = false;
+                    }
+                });
+
+                try {
+                    videoEncoder.configure({
+                        codec: 'avc1.640033',
+                        width: videoWidth,
+                        height: videoHeight,
+                        bitrate: 15_000_000,
+                        framerate: 60
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    if (encoderFailed || videoEncoder.state !== 'configured') {
+                        throw new Error('Encoder failed to configure.');
+                    }
+                } catch (e) {
+                    console.error('Failed to configure encoder:', e);
+                    alert('Failed to start video export: ' + e.message);
+                    isRecording = false;
+                    btn.textContent = 'MP4';
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Store original animation state
+                const wasAnimating = state.isAnimating;
+                const originalTime = state.animationTime;
+                state.isAnimating = false;
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+
+                const captureFrame = () => {
+                    if (encoderFailed) {
+                        return;
+                    }
+
+                    if (frameNumber >= totalFrames) {
+                        isRecording = false;
+
+                        videoEncoder.flush().then(() => {
+                            videoEncoder.close();
+                            muxer.finalize();
+                            const { buffer } = muxer.target;
+                            const blob = new Blob([buffer], { type: 'video/mp4' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.download = 'krcg-pattern-' + Date.now() + '.mp4';
+                            link.href = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                            btn.textContent = 'MP4';
+                            btn.style.background = '';
+                            btn.style.color = '';
+                            btn.disabled = false;
+
+                            // Restore animation state
+                            state.animationTime = originalTime;
+                            if (wasAnimating) {
+                                startAnimation();
+                            } else {
+                                drawPattern();
+                            }
+                        }).catch(e => {
+                            console.error('Error finalizing video:', e);
+                            alert('Error creating video: ' + e.message);
+                            btn.textContent = 'MP4';
+                            btn.style.background = '';
+                            btn.style.color = '';
+                            btn.disabled = false;
+                            state.animationTime = originalTime;
+                            if (wasAnimating) startAnimation();
+                        });
+                        return;
+                    }
+
+                    if (videoEncoder.state !== 'configured') {
+                        isRecording = false;
+                        state.animationTime = originalTime;
+                        if (wasAnimating) startAnimation();
+                        return;
+                    }
+
+                    if (videoEncoder.encodeQueueSize > 30) {
+                        setTimeout(captureFrame, 10);
+                        return;
+                    }
+
+                    // Set animation time for this frame (linear progress through one cycle)
+                    const linearProgress = frameNumber / totalFrames;
+                    state.animationTime = linearProgress;
+
+                    // Draw the frame
+                    drawPattern();
+
+                    // Create video frame from canvas
+                    const frame = new VideoFrame(canvas, {
+                        timestamp: (frameNumber * 1_000_000) / 60
+                    });
+
+                    videoEncoder.encode(frame, { keyFrame: frameNumber % 60 === 0 });
+                    frame.close();
+
+                    frameNumber++;
+
+                    requestAnimationFrame(captureFrame);
+                };
+
+                captureFrame();
             });
 
         }
