@@ -663,10 +663,6 @@
             canvas.width = state.canvasWidth;
             canvas.height = state.canvasHeight;
 
-            // Fill background with secondary color
-            ctx.fillStyle = '#' + state.secondaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
             // Pattern parameters
             const zoomFactor = state.zoom / 50;  // 25% = 0.5x, 200% = 4x zoom
             const baseStepSize = 60;  // Base step size at 100% zoom
@@ -691,40 +687,79 @@
             const offsetX = (state.offsetX / 100) * stripeSpacing;
             const offsetY = (state.offsetY / 100) * rowSpacing;
 
-            ctx.fillStyle = '#' + state.primaryColor;
-
             // Calculate grid size needed to cover canvas
             const effectiveRowSpacing = rowSpacing + vGap;
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Corner radius for rounded parallelograms
-            const cornerRadius = stepSize * 0.12;
+            // Corner radius for the rounded effect
+            const cornerRadius = Math.max(4, stepSize * 0.08);
 
-            // Set up rounded stroke
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.lineWidth = cornerRadius * 2;
-            ctx.strokeStyle = '#' + state.primaryColor;
+            // Create offscreen canvas for the pattern mask
+            const offscreen = document.createElement('canvas');
+            offscreen.width = canvas.width;
+            offscreen.height = canvas.height;
+            const offCtx = offscreen.getContext('2d');
 
-            // Draw parallelograms in diagonal stripes (start further up to cover canvas)
+            // Draw shapes in white on black background
+            offCtx.fillStyle = '#000000';
+            offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+            offCtx.fillStyle = '#FFFFFF';
+
+            // Draw parallelograms
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // Each row shifts RIGHT by stepSize to create diagonal stripes
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Draw parallelogram with rounded corners via stroke
-                    ctx.beginPath();
-                    ctx.moveTo(x, baseY + paraHeight);                          // bottom-left
-                    ctx.lineTo(x, baseY);                                       // top-left
-                    ctx.lineTo(x + stepSize, baseY - stepSize);                 // top-right
-                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);    // bottom-right
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
+                    offCtx.beginPath();
+                    offCtx.moveTo(x, baseY + paraHeight);
+                    offCtx.lineTo(x, baseY);
+                    offCtx.lineTo(x + stepSize, baseY - stepSize);
+                    offCtx.lineTo(x + stepSize, baseY - stepSize + paraHeight);
+                    offCtx.closePath();
+                    offCtx.fill();
                 }
             }
+
+            // Apply blur for rounding effect
+            offCtx.filter = `blur(${cornerRadius}px)`;
+            offCtx.drawImage(offscreen, 0, 0);
+            offCtx.filter = 'none';
+
+            // Get image data and threshold to create sharp rounded edges
+            const imageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height);
+            const data = imageData.data;
+            const threshold = 128;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const val = data[i] > threshold ? 255 : 0;
+                data[i] = val;
+                data[i + 1] = val;
+                data[i + 2] = val;
+                data[i + 3] = 255;
+            }
+            offCtx.putImageData(imageData, 0, 0);
+
+            // Draw final result: background + colored pattern using mask
+            ctx.fillStyle = '#' + state.secondaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Use the mask to draw the primary color
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(offscreen, 0, 0);
+
+            // Now colorize: where white, draw primary color
+            ctx.globalCompositeOperation = 'source-in';
+            ctx.fillStyle = '#' + state.primaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Composite over the background
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = '#' + state.secondaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalCompositeOperation = 'source-over';
 
             scaleCanvasToFit();
         }
@@ -904,7 +939,6 @@
             const rowsNeeded = Math.ceil(state.canvasHeight / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
-            const cornerRadius = stepSize * 0.12;
             let paths = '';
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
@@ -912,7 +946,6 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Parallelogram path
                     const bl = { x: x, y: baseY + paraHeight };
                     const tl = { x: x, y: baseY };
                     const tr = { x: x + stepSize, y: baseY - stepSize };
@@ -925,7 +958,7 @@
             return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${state.canvasWidth}" height="${state.canvasHeight}" viewBox="0 0 ${state.canvasWidth} ${state.canvasHeight}" xmlns="http://www.w3.org/2000/svg">
     <rect width="${state.canvasWidth}" height="${state.canvasHeight}" fill="#${state.secondaryColor}"/>
-    <g fill="#${state.primaryColor}" stroke="#${state.primaryColor}" stroke-width="${cornerRadius * 2}" stroke-linejoin="round" stroke-linecap="round">
+    <g fill="#${state.primaryColor}">
         ${paths}
     </g>
 </svg>`;
