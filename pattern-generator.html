@@ -994,8 +994,8 @@
             const deltaTime = lastTime ? (currentTime - lastTime) / 1000 : 0;
             lastTime = currentTime;
 
-            // Speed controls how fast the animation cycles (1-100 maps to 0.02-0.5 cycles per second)
-            const cyclesPerSecond = 0.02 + (state.speed / 100) * 0.48;
+            // Speed controls how fast the animation cycles (1-100 maps to 0.02-1.0 cycles per second)
+            const cyclesPerSecond = 0.02 + (state.speed / 100) * 0.98;
             state.animationTime += deltaTime * cyclesPerSecond;
 
             drawPattern();
