@@ -1114,7 +1114,8 @@
             const zoomFactor = state.zoom / 50;
             const baseStepSize = 60;
             const stepSize = baseStepSize * zoomFactor;
-            const stripeSpacing = 120 * zoomFactor;
+            // Round stripeSpacing to avoid floating point precision issues in visualColIdx calculation
+            const stripeSpacing = Math.round(120 * zoomFactor);
 
             // Interpolate values based on weight slider (0-100)
             const t = state.weight / 100;
