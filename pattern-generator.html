@@ -984,44 +984,54 @@
             const round = (v) => Math.round(v * 10) / 10;
 
             // Animation parameters
-            const totalCols = cols * 2;
-            // How far column moves in one complete cycle (the full canvas height for visible movement)
+            // How far column moves in one complete cycle
             const travelDistance = canvas.height;
-            // Stagger: phase offset between columns (0% = all same, 100% = full cycle offset)
+            // Stagger: phase offset between visual columns (0% = all same, 100% = full cycle offset)
             const maxPhaseOffset = state.stagger / 100;
+            // Count visible columns on screen for stagger distribution
+            const visibleCols = Math.ceil(canvas.width / stripeSpacing) + 4;
 
-            // Pre-calculate animation offset for each column (all shapes in same column move together)
-            const columnOffsets = {};
-            for (let col = -cols; col < cols; col++) {
-                if (!state.isAnimating && state.animationTime === 0) {
-                    columnOffsets[col] = 0;
-                    continue;
+            // Cache for visual column offsets (keyed by visual column index)
+            const visualColumnOffsets = {};
+
+            function getVisualColumnOffset(visualColIdx) {
+                if (visualColumnOffsets[visualColIdx] !== undefined) {
+                    return visualColumnOffsets[visualColIdx];
                 }
 
-                const colIndex = col + cols;
-                // Phase offset: each column starts at a different point in the cycle
-                const phaseOffset = (colIndex / totalCols) * maxPhaseOffset;
+                if (!state.isAnimating && state.animationTime === 0) {
+                    visualColumnOffsets[visualColIdx] = 0;
+                    return 0;
+                }
 
-                // Calculate this column's position in its animation cycle (0 to 1, looping)
+                // Normalize visual column index for stagger (0 = leftmost on screen)
+                const normalizedIdx = visualColIdx / visibleCols;
+                const phaseOffset = normalizedIdx * maxPhaseOffset;
+
+                // Calculate cycle progress with phase offset
                 let cycleProgress = (state.animationTime + phaseOffset) % 1;
 
-                // Apply easing to the cycle progress
+                // Apply easing
                 const easedProgress = cubicBezier(
                     cycleProgress,
                     state.easingP1.x, state.easingP1.y,
                     state.easingP2.x, state.easingP2.y
                 );
 
-                // The entire column moves by this offset
-                columnOffsets[col] = -easedProgress * travelDistance;
+                visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
+                return visualColumnOffsets[visualColIdx];
             }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // All shapes in the same column get the exact same animation offset
-                    const animY = columnOffsets[col];
-
                     const x = col * stripeSpacing + row * stepSize + offsetX;
+
+                    // Calculate which VISUAL column this shape belongs to based on X position
+                    const visualColIdx = Math.round(x / stripeSpacing);
+
+                    // All shapes in the same visual column get the exact same animation offset
+                    const animY = getVisualColumnOffset(visualColIdx);
+
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
 
                     // Parallelogram vertices with overlap on all edges for stable union
