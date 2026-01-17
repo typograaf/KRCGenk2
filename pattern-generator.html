@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRCG Pattern Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
     <style>
         @font-face {
             font-family: 'ABC Arizona Sans';
@@ -691,47 +692,68 @@
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius for rounded corners
-            const r = Math.max(4, stepSize * 0.1);
+            const r = Math.max(4, stepSize * 0.12);
 
-            ctx.fillStyle = '#' + state.primaryColor;
+            // Small overlap to ensure shapes in same column unite properly
+            const overlapExtra = 2;
 
-            // Helper function to draw a rounded parallelogram
-            function drawRoundedParallelogram(x, baseY) {
-                // Four corners of the parallelogram
-                const bl = { x: x, y: baseY + paraHeight };           // bottom-left
-                const tl = { x: x, y: baseY };                        // top-left
-                const tr = { x: x + stepSize, y: baseY - stepSize };  // top-right
-                const br = { x: x + stepSize, y: baseY - stepSize + paraHeight }; // bottom-right
+            // Setup Paper.js
+            paper.setup(canvas);
 
-                ctx.beginPath();
+            // Create all parallelograms as Paper.js paths
+            let compound = null;
 
-                // Start at bottom-left, offset for rounding
-                ctx.moveTo(bl.x, bl.y - r);
-
-                // Bottom-left corner (vertical to diagonal)
-                ctx.arcTo(bl.x, bl.y, br.x, br.y, r);
-
-                // Bottom edge (diagonal) to bottom-right
-                ctx.arcTo(br.x, br.y, br.x, tr.y, r);
-
-                // Right edge (vertical) to top-right
-                ctx.arcTo(tr.x, tr.y, tl.x, tl.y, r);
-
-                // Top edge (diagonal) to top-left
-                ctx.arcTo(tl.x, tl.y, bl.x, bl.y, r);
-
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // Draw parallelograms
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
-                    drawRoundedParallelogram(x, baseY);
+
+                    // Create parallelogram path with slight extra height for overlap
+                    const path = new paper.Path({
+                        segments: [
+                            [x, baseY + paraHeight + overlapExtra],      // bottom-left (extended)
+                            [x, baseY - overlapExtra],                   // top-left (extended)
+                            [x + stepSize, baseY - stepSize - overlapExtra], // top-right (extended)
+                            [x + stepSize, baseY - stepSize + paraHeight + overlapExtra] // bottom-right (extended)
+                        ],
+                        closed: true
+                    });
+
+                    // Unite with existing compound
+                    if (compound === null) {
+                        compound = path;
+                    } else {
+                        const newCompound = compound.unite(path);
+                        compound.remove();
+                        path.remove();
+                        compound = newCompound;
+                    }
                 }
             }
+
+            // Apply corner rounding to the compound path
+            if (compound) {
+                // Smooth/round the corners
+                for (let i = 0; i < compound.segments.length; i++) {
+                    const segment = compound.segments[i];
+                    segment.smooth({ type: 'geometric', factor: r / 20 });
+                }
+
+                // Draw the compound path
+                compound.fillColor = '#' + state.primaryColor;
+
+                // Render to canvas
+                paper.view.draw();
+
+                // Clean up
+                compound.remove();
+            }
+
+            // Draw background behind (Paper.js clears the canvas)
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = '#' + state.secondaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'source-over';
 
             scaleCanvasToFit();
         }
