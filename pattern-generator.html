@@ -663,103 +663,103 @@
             canvas.width = state.canvasWidth;
             canvas.height = state.canvasHeight;
 
+            // Fill background with secondary color
+            ctx.fillStyle = '#' + state.secondaryColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             // Pattern parameters
-            const zoomFactor = state.zoom / 50;  // 25% = 0.5x, 200% = 4x zoom
-            const baseStepSize = 60;  // Base step size at 100% zoom
-            const stepSize = baseStepSize * zoomFactor;  // Zoom scales the step size
-            const stripeSpacing = 120 * zoomFactor;  // Fixed column distance so shapes touch horizontally
+            const zoomFactor = state.zoom / 50;
+            const baseStepSize = 60;
+            const stepSize = baseStepSize * zoomFactor;
+            const stripeSpacing = 120 * zoomFactor;
 
             // Interpolate values based on weight slider (0-100)
-            // At 0: weight 5%, rowDist 72, vGap -50
-            // At 100: weight 17%, rowDist 75, vGap -50
             const t = state.weight / 100;
-            const weightRatio = (5 + t * (17 - 5)) / 100;  // 5% to 17%
-            const rowDist = 72 + t * (75 - 72);  // 72 to 75
-            const vGapVal = -50;  // constant -50
+            const weightRatio = (5 + t * (17 - 5)) / 100;
+            const rowDist = 72 + t * (75 - 72);
+            const vGapVal = -50;
 
             const rowSpacing = rowDist * zoomFactor;
             const vGap = vGapVal * zoomFactor;
-
-            // Weight controls the HEIGHT of each parallelogram
             const paraHeight = stepSize * 3 * weightRatio;
 
-            // Offset for positioning
             const offsetX = (state.offsetX / 100) * stripeSpacing;
             const offsetY = (state.offsetY / 100) * rowSpacing;
 
-            // Calculate grid size needed to cover canvas
             const effectiveRowSpacing = rowSpacing + vGap;
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Corner radius for the rounded effect (keep small to not close gaps)
-            const cornerRadius = Math.max(2, stepSize * 0.03);
+            // Corner radius
+            const r = Math.max(4, stepSize * 0.08);
 
-            // Create offscreen canvas for the pattern mask
-            const offscreen = document.createElement('canvas');
-            offscreen.width = canvas.width;
-            offscreen.height = canvas.height;
-            const offCtx = offscreen.getContext('2d');
-
-            // Draw shapes in white on black background
-            offCtx.fillStyle = '#000000';
-            offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
-            offCtx.fillStyle = '#FFFFFF';
-
-            // Draw parallelograms
-            for (let row = -rowsNeeded; row < rowsNeeded; row++) {
-                for (let col = -cols; col < cols; col++) {
-                    const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * (rowSpacing + vGap) + offsetY;
-
-                    offCtx.beginPath();
-                    offCtx.moveTo(x, baseY + paraHeight);
-                    offCtx.lineTo(x, baseY);
-                    offCtx.lineTo(x + stepSize, baseY - stepSize);
-                    offCtx.lineTo(x + stepSize, baseY - stepSize + paraHeight);
-                    offCtx.closePath();
-                    offCtx.fill();
-                }
-            }
-
-            // Apply blur for rounding effect
-            offCtx.filter = `blur(${cornerRadius}px)`;
-            offCtx.drawImage(offscreen, 0, 0);
-            offCtx.filter = 'none';
-
-            // Get image data and threshold to create sharp rounded edges
-            const imageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height);
-            const data = imageData.data;
-            const threshold = 128;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const val = data[i] > threshold ? 255 : 0;
-                data[i] = val;
-                data[i + 1] = val;
-                data[i + 2] = val;
-                data[i + 3] = 255;
-            }
-            offCtx.putImageData(imageData, 0, 0);
-
-            // Draw final result: background + colored pattern using mask
-            ctx.fillStyle = '#' + state.secondaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Use the mask to draw the primary color
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(offscreen, 0, 0);
-
-            // Now colorize: where white, draw primary color
-            ctx.globalCompositeOperation = 'source-in';
             ctx.fillStyle = '#' + state.primaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Composite over the background
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = '#' + state.secondaryColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // The overlap amount between consecutive parallelograms
+            const overlap = paraHeight - effectiveRowSpacing;
 
-            ctx.globalCompositeOperation = 'source-over';
+            // Draw each column as a zigzag stripe
+            for (let col = -cols; col < cols; col++) {
+                ctx.beginPath();
+
+                // Build arrays of left edge points and right edge points
+                const leftPoints = [];
+                const rightPoints = [];
+
+                for (let row = -rowsNeeded; row < rowsNeeded * 2; row++) {
+                    const x = col * stripeSpacing + row * stepSize + offsetX;
+                    const baseY = row * effectiveRowSpacing + offsetY;
+
+                    // Left side: bottom-left and top-left of each parallelogram
+                    // But we create the zigzag by alternating between the notch and peak
+                    leftPoints.push({ x: x, y: baseY + paraHeight, type: 'bottom' });
+                    leftPoints.push({ x: x, y: baseY, type: 'top' });
+
+                    // Right side: top-right and bottom-right
+                    rightPoints.push({ x: x + stepSize, y: baseY - stepSize, type: 'top' });
+                    rightPoints.push({ x: x + stepSize, y: baseY - stepSize + paraHeight, type: 'bottom' });
+                }
+
+                // Draw left edge going up (zigzag pattern)
+                // The united shape edge goes: up vertical, diagonal notch inward, up vertical, etc.
+                let started = false;
+                for (let i = 0; i < leftPoints.length - 2; i += 2) {
+                    const bl = leftPoints[i];      // bottom-left of current para
+                    const tl = leftPoints[i + 1];  // top-left of current para
+                    const nextBl = leftPoints[i + 2]; // bottom-left of next para
+
+                    if (!started) {
+                        ctx.moveTo(bl.x + r, bl.y);
+                        started = true;
+                    }
+
+                    // Up the left edge
+                    ctx.lineTo(tl.x, tl.y + r);
+                    // Round the outer corner (top-left tip going to diagonal)
+                    ctx.quadraticCurveTo(tl.x, tl.y, tl.x + r * 0.7, tl.y - r * 0.7);
+
+                    // Diagonal going up-right to the peak
+                    const peakX = tl.x + stepSize;
+                    const peakY = tl.y - stepSize;
+                    ctx.lineTo(peakX - r * 0.7, peakY + r * 0.7);
+                    // Round the peak (outer corner)
+                    ctx.quadraticCurveTo(peakX, peakY, peakX, peakY + r);
+
+                    // Down to where the next parallelogram's notch is
+                    const notchY = nextBl.y - stepSize;
+                    ctx.lineTo(peakX, notchY - r);
+                    // Round the inner notch corner
+                    ctx.quadraticCurveTo(peakX, notchY, peakX - r * 0.7, notchY + r * 0.7);
+
+                    // Diagonal going down-left into the notch
+                    ctx.lineTo(nextBl.x + r * 0.7, nextBl.y - r * 0.7);
+                    // Round the inner notch corner
+                    ctx.quadraticCurveTo(nextBl.x, nextBl.y, nextBl.x, nextBl.y - r);
+                }
+
+                ctx.closePath();
+                ctx.fill();
+            }
 
             scaleCanvasToFit();
         }
