@@ -694,11 +694,12 @@
             ctx.fillStyle = '#' + state.primaryColor;
 
             // Calculate grid size needed to cover canvas
-            const rows = Math.ceil(canvas.height / rowSpacing) + 8;
+            const effectiveRowSpacing = rowSpacing + vGap;
+            const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Draw parallelograms in diagonal stripes
-            for (let row = -8; row < rows; row++) {
+            // Draw parallelograms in diagonal stripes (start further up to cover canvas)
+            for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     // Each row shifts RIGHT by stepSize to create diagonal stripes
                     const x = col * stripeSpacing + row * stepSize + offsetX;
@@ -889,12 +890,13 @@
             const offsetX = (state.offsetX / 100) * stripeSpacing;
             const offsetY = (state.offsetY / 100) * rowSpacing;
 
-            const rows = Math.ceil(state.canvasHeight / rowSpacing) + 8;
+            const effectiveRowSpacing = rowSpacing + vGap;
+            const rowsNeeded = Math.ceil(state.canvasHeight / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             let paths = '';
 
-            for (let row = -8; row < rows; row++) {
+            for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
