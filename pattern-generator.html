@@ -977,62 +977,56 @@
             // Build all parallelograms as polygons for boolean union
             const polygons = [];
 
+            // Overlap must scale with zoom to ensure shapes always connect properly
+            const overlap = stepSize * 0.01;
+
             // Round to fixed precision to avoid floating point issues in boolean union
             const round = (v) => Math.round(v * 10) / 10;
 
-            // Animation: travel distance = exactly one effectiveRowSpacing for seamless looping
-            // When a shape moves up by this amount, the shape below takes its place
+            // Animation parameters
             const travelDistance = Math.abs(effectiveRowSpacing);
             const totalCols = cols * 2;
-            // Stagger: 0% = all columns together, 100% = full wave across columns
-            const maxStaggerTime = state.stagger / 100; // max delay spread across all columns
+            // Stagger controls how much delay between first and last column (0-100% maps to 0-1 cycle)
+            const maxStaggerDelay = state.stagger / 100;
 
-            // Overlap must scale with zoom to ensure shapes always connect properly
-            // During animation with stagger, adjacent columns may be at different Y offsets
-            // Add extra vertical overlap to ensure shapes still connect
-            const baseOverlap = stepSize * 0.01;
-            const maxAnimOffset = travelDistance * maxStaggerTime;
-            const verticalOverlap = state.isAnimating ? maxAnimOffset + baseOverlap : baseOverlap;
-            const overlap = baseOverlap;
+            // Pre-calculate animation offset for each column (all shapes in same column move together)
+            const columnOffsets = {};
+            for (let col = -cols; col < cols; col++) {
+                const colIndex = col + cols;
+                // Stagger delay: first column (left) starts at time 0, last column starts later
+                const colDelay = (colIndex / totalCols) * maxStaggerDelay;
+
+                // This column's time in the animation cycle
+                let colTime = state.animationTime - colDelay;
+                colTime = ((colTime % 1) + 1) % 1; // Wrap to 0-1
+
+                // Apply easing
+                const easedProgress = cubicBezier(
+                    colTime,
+                    state.easingP1.x, state.easingP1.y,
+                    state.easingP2.x, state.easingP2.y
+                );
+
+                // Store the Y offset for this column
+                columnOffsets[col] = (state.isAnimating || state.animationTime > 0)
+                    ? -easedProgress * travelDistance
+                    : 0;
+            }
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // Calculate per-column animation offset
-                    let animY = 0;
-                    if (state.isAnimating || state.animationTime > 0) {
-                        // Column index from left (0) to right (totalCols)
-                        const colIndex = col + cols;
-
-                        // Each column has a delay: first column starts first, last column starts last
-                        const colDelay = (colIndex / totalCols) * maxStaggerTime;
-
-                        // Calculate this column's local time (accounting for delay)
-                        let colTime = state.animationTime - colDelay;
-
-                        // Wrap to 0-1 range for looping animation
-                        colTime = ((colTime % 1) + 1) % 1;
-
-                        // Apply easing
-                        const easedProgress = cubicBezier(
-                            colTime,
-                            state.easingP1.x, state.easingP1.y,
-                            state.easingP2.x, state.easingP2.y
-                        );
-
-                        // Move upward - use modulo to keep within one cycle
-                        animY = -easedProgress * travelDistance;
-                    }
+                    // All shapes in the same column get the exact same animation offset
+                    const animY = columnOffsets[col];
 
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY + animY;
 
                     // Parallelogram vertices with overlap on all edges for stable union
-                    // Use verticalOverlap for Y coords to handle stagger animation differences
                     const poly = [[
-                        [round(x - overlap), round(baseY + paraHeight + verticalOverlap)],
-                        [round(x - overlap), round(baseY - verticalOverlap)],
-                        [round(x + stepSize + overlap), round(baseY - stepSize - verticalOverlap)],
-                        [round(x + stepSize + overlap), round(baseY - stepSize + paraHeight + verticalOverlap)]
+                        [round(x - overlap), round(baseY + paraHeight + overlap)],
+                        [round(x - overlap), round(baseY - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize + paraHeight + overlap)]
                     ]];
                     polygons.push(poly);
                 }
