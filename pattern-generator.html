@@ -686,12 +686,13 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pattern parameters
-            const stepSize = state.step;         // Size of each step (controls parallelogram size)
+            const stepSize = state.step;         // Size of each step notch (fixed, controls 45° angle)
+            const stripeSpacing = state.scale;   // Horizontal spacing between stripes (fixed)
             const weightRatio = state.weight / 100;
 
-            // Weight controls the spacing between stripes
-            // Lower weight = more spacing (thinner stripes), higher weight = less spacing (thicker stripes)
-            const stripeSpacing = state.scale * (1 - weightRatio * 0.8);
+            // Weight controls the HEIGHT of each parallelogram
+            // paraHeight varies from small (light) to large (bold)
+            const paraHeight = stepSize * 3 * weightRatio;
 
             // Offset for positioning
             const offsetX = (state.offsetX / 100) * stripeSpacing;
@@ -700,23 +701,23 @@
             ctx.fillStyle = '#' + state.primaryColor;
 
             // Calculate grid size needed to cover canvas
-            const rows = Math.ceil(canvas.height / stepSize) + 4;
+            const rows = Math.ceil(canvas.height / stepSize) + 8;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Draw parallelograms in diagonal stripes
-            // Each row is offset by stepSize to create the staircase pattern
-            for (let row = -4; row < rows; row++) {
+            for (let row = -8; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
                     // Each row shifts RIGHT by stepSize to create diagonal stripes
                     const x = col * stripeSpacing + row * stepSize + offsetX;
-                    const baseY = row * stepSize * 2 + offsetY;  // Double the vertical spacing
+                    const baseY = row * stepSize * 2 + offsetY;
 
                     // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
+                    // stepSize controls the diagonal (45° angle), paraHeight controls vertical extent
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY + stepSize);               // bottom-left
-                    ctx.lineTo(x, baseY);                          // top-left
-                    ctx.lineTo(x + stepSize, baseY - stepSize);    // top-right (45° diagonal)
-                    ctx.lineTo(x + stepSize, baseY);               // bottom-right
+                    ctx.moveTo(x, baseY + paraHeight);                          // bottom-left
+                    ctx.lineTo(x, baseY);                                       // top-left
+                    ctx.lineTo(x + stepSize, baseY - stepSize);                 // top-right (45° cut)
+                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);    // bottom-right
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -897,27 +898,28 @@
 
         function generateSVG() {
             const stepSize = state.step;
+            const stripeSpacing = state.scale;
             const weightRatio = state.weight / 100;
-            const stripeSpacing = state.scale * (1 - weightRatio * 0.8);
+            const paraHeight = stepSize * 3 * weightRatio;
 
             const offsetX = (state.offsetX / 100) * stripeSpacing;
             const offsetY = (state.offsetY / 100) * stepSize;
 
-            const rows = Math.ceil(state.canvasHeight / stepSize) + 4;
+            const rows = Math.ceil(state.canvasHeight / stepSize) + 8;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
             let paths = '';
 
-            for (let row = -4; row < rows; row++) {
+            for (let row = -8; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * stepSize * 2 + offsetY;
 
                     // Parallelogram with vertical sides and 45° diagonal
-                    const blX = x, blY = baseY + stepSize;
+                    const blX = x, blY = baseY + paraHeight;
                     const tlX = x, tlY = baseY;
                     const trX = x + stepSize, trY = baseY - stepSize;
-                    const brX = x + stepSize, brY = baseY;
+                    const brX = x + stepSize, brY = baseY - stepSize + paraHeight;
 
                     paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
                 }
