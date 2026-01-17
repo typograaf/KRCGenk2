@@ -702,26 +702,25 @@
             const rows = Math.ceil(canvas.height / cellHeight) + 4;
 
             // Draw parallelograms in a grid
-            // Each row is shifted by 'shear' to create diagonal stripes
+            // Each row is shifted to create diagonal stripes going bottom-left to top-right
             for (let row = -2; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
                     // Base position
                     const baseX = col * cellWidth + offsetX;
                     const baseY = row * cellHeight + offsetY;
 
-                    // Shift X based on row to create diagonal
-                    const rowShift = row * shear;
+                    // Each row shifts LEFT to create upward-right diagonal
+                    const topX = baseX - row * shear;
 
                     // Parallelogram width based on weight
                     const paraWidth = cellWidth * weightRatio;
 
-                    // Draw parallelogram
-                    // The shape leans to the left as it goes up
+                    // Draw parallelogram - bottom shifted LEFT relative to top
                     ctx.beginPath();
-                    ctx.moveTo(baseX - rowShift, baseY);                           // top-left
-                    ctx.lineTo(baseX - rowShift + paraWidth, baseY);               // top-right
-                    ctx.lineTo(baseX - rowShift + paraWidth + shear, baseY + cellHeight); // bottom-right
-                    ctx.lineTo(baseX - rowShift + shear, baseY + cellHeight);      // bottom-left
+                    ctx.moveTo(topX, baseY);                              // top-left
+                    ctx.lineTo(topX + paraWidth, baseY);                  // top-right
+                    ctx.lineTo(topX + paraWidth - shear, baseY + cellHeight); // bottom-right
+                    ctx.lineTo(topX - shear, baseY + cellHeight);         // bottom-left
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -918,13 +917,13 @@
                 for (let col = -cols; col < cols; col++) {
                     const baseX = col * cellWidth + offsetX;
                     const baseY = row * cellHeight + offsetY;
-                    const rowShift = row * shear;
+                    const topX = baseX - row * shear;
                     const paraWidth = cellWidth * weightRatio;
 
-                    const x1 = baseX - rowShift;
-                    const x2 = baseX - rowShift + paraWidth;
-                    const x3 = baseX - rowShift + paraWidth + shear;
-                    const x4 = baseX - rowShift + shear;
+                    const x1 = topX;
+                    const x2 = topX + paraWidth;
+                    const x3 = topX + paraWidth - shear;
+                    const x4 = topX - shear;
 
                     paths += `<path d="M ${x1},${baseY} L ${x2},${baseY} L ${x3},${baseY + cellHeight} L ${x4},${baseY + cellHeight} Z"/>`;
                 }
