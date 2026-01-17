@@ -1188,8 +1188,8 @@
                 return visualColumnOffsets[visualColIdx];
             }
 
-            // Visibility buffer for off-screen culling
-            const buffer = stepSize * 2;
+            // Visibility buffer for off-screen culling - large buffer to handle all edge cases
+            const buffer = travelDistance + stepSize * 3;
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
