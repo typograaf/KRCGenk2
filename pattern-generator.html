@@ -687,9 +687,12 @@
 
             // Pattern parameters
             const stripeSpacing = state.scale;   // Horizontal distance between stripe starts
-            const stepHeight = state.step;       // Height of each parallelogram row
+            const stepHeight = state.step;       // Base step height
             const weightRatio = state.weight / 100;
-            const stripeWidth = stripeSpacing * weightRatio;  // Width of colored stripe
+
+            // Weight controls the HEIGHT of the parallelogram (vertical extent)
+            const stripeWidth = stripeSpacing;   // Fixed width
+            const paraHeight = stepHeight * 2 * weightRatio;  // Height varies with weight
 
             // Offset for positioning
             const offsetX = (state.offsetX / 100) * stripeSpacing;
@@ -713,11 +716,11 @@
                     const x = baseX - row * stepHeight;
 
                     // Draw parallelogram with VERTICAL sides
-                    // Top edge slopes UP to the right, bottom edge slopes UP to the right
+                    // Height controlled by weight, centered on the row
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY + stepHeight);                         // bottom-left
+                    ctx.moveTo(x, baseY + paraHeight);                         // bottom-left
                     ctx.lineTo(x, baseY);                                      // top-left (vertical left edge)
-                    ctx.lineTo(x + stripeWidth, baseY - stepHeight);           // top-right (slanted top edge, going UP)
+                    ctx.lineTo(x + stripeWidth, baseY - paraHeight);           // top-right (slanted top edge)
                     ctx.lineTo(x + stripeWidth, baseY);                        // bottom-right (vertical right edge)
                     ctx.closePath();
                     ctx.fill();
@@ -901,7 +904,8 @@
             const stripeSpacing = state.scale;
             const stepHeight = state.step;
             const weightRatio = state.weight / 100;
-            const stripeWidth = stripeSpacing * weightRatio;
+            const stripeWidth = stripeSpacing;
+            const paraHeight = stepHeight * 2 * weightRatio;
 
             const offsetX = (state.offsetX / 100) * stripeSpacing;
             const offsetY = (state.offsetY / 100) * stepHeight;
@@ -917,11 +921,11 @@
                     const baseY = row * stepHeight + offsetY;
                     const x = baseX - row * stepHeight;
 
-                    // Parallelogram with vertical sides
-                    const blX = x, blY = baseY + stepHeight;       // bottom-left
-                    const tlX = x, tlY = baseY;                     // top-left
-                    const trX = x + stripeWidth, trY = baseY - stepHeight; // top-right
-                    const brX = x + stripeWidth, brY = baseY;       // bottom-right
+                    // Parallelogram with vertical sides, height controlled by weight
+                    const blX = x, blY = baseY + paraHeight;
+                    const tlX = x, tlY = baseY;
+                    const trX = x + stripeWidth, trY = baseY - paraHeight;
+                    const brX = x + stripeWidth, brY = baseY;
 
                     paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
                 }
