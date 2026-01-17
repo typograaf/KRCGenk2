@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRCG Pattern Generator</title>
-    <script src="https://unpkg.com/clipper2-js@1.0.5/dist/clipper2.umd.js"></script>
     <style>
         @font-face {
             font-family: 'ABC Arizona Sans';
@@ -691,53 +690,19 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 25;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Bevel radius (like Cavalry's 30)
-            const bevelRadius = Math.max(4, stepSize * 0.15);
-
-            // Scale factor for Clipper2 (it works with integers)
-            const scale = 100;
-
             ctx.fillStyle = '#' + state.primaryColor;
 
-            // Process each column separately for performance
-            for (let col = -cols; col < cols; col++) {
-                // Create paths for all parallelograms in this column
-                const paths = [];
-
-                for (let row = -rowsNeeded; row < rowsNeeded; row++) {
+            // Draw parallelograms
+            for (let row = -rowsNeeded; row < rowsNeeded; row++) {
+                for (let col = -cols; col < cols; col++) {
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * effectiveRowSpacing + offsetY;
 
-                    // Parallelogram vertices (scaled for Clipper2)
-                    const path = [
-                        { x: Math.round(x * scale), y: Math.round((baseY + paraHeight) * scale) },
-                        { x: Math.round(x * scale), y: Math.round(baseY * scale) },
-                        { x: Math.round((x + stepSize) * scale), y: Math.round((baseY - stepSize) * scale) },
-                        { x: Math.round((x + stepSize) * scale), y: Math.round((baseY - stepSize + paraHeight) * scale) }
-                    ];
-                    paths.push(path);
-                }
-
-                // Union all paths in this column
-                let united = Clipper2.Clipper.Union(paths, [], Clipper2.FillRule.NonZero);
-
-                // Apply round offset (inflate then deflate for rounded corners)
-                if (united.length > 0 && bevelRadius > 0) {
-                    const inflated = Clipper2.Clipper.InflatePaths(united, bevelRadius * scale, Clipper2.JoinType.Round, Clipper2.EndType.Polygon);
-                    united = Clipper2.Clipper.InflatePaths(inflated, -bevelRadius * scale, Clipper2.JoinType.Round, Clipper2.EndType.Polygon);
-                }
-
-                // Draw the result
-                for (const path of united) {
                     ctx.beginPath();
-                    for (let i = 0; i < path.length; i++) {
-                        const pt = path[i];
-                        if (i === 0) {
-                            ctx.moveTo(pt.x / scale, pt.y / scale);
-                        } else {
-                            ctx.lineTo(pt.x / scale, pt.y / scale);
-                        }
-                    }
+                    ctx.moveTo(x, baseY + paraHeight);
+                    ctx.lineTo(x, baseY);
+                    ctx.lineTo(x + stepSize, baseY - stepSize);
+                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);
                     ctx.closePath();
                     ctx.fill();
                 }
