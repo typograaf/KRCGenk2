@@ -703,14 +703,13 @@
             const rows = Math.ceil(canvas.height / stepSize) + 4;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
-            // Draw parallelograms in vertical columns
-            // Each column is vertically stacked - the slanted edges create the diagonal stripe pattern
+            // Draw parallelograms in diagonal stripes
+            // Each row is offset by stepSize to create the staircase pattern
             for (let row = -4; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    // X position based on column only (no row offset)
-                    // This creates vertical columns of parallelograms
-                    const x = col * stripeSpacing + offsetX;
-                    const baseY = row * stepSize + offsetY;
+                    // Each row shifts RIGHT by stepSize to create diagonal stripes
+                    const x = col * stripeSpacing + row * stepSize + offsetX;
+                    const baseY = row * stepSize * 2 + offsetY;  // Double the vertical spacing
 
                     // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
                     ctx.beginPath();
@@ -911,8 +910,8 @@
 
             for (let row = -4; row < rows; row++) {
                 for (let col = -cols; col < cols; col++) {
-                    const x = col * stripeSpacing + offsetX;
-                    const baseY = row * stepSize + offsetY;
+                    const x = col * stripeSpacing + row * stepSize + offsetX;
+                    const baseY = row * stepSize * 2 + offsetY;
 
                     // Parallelogram with vertical sides and 45° diagonal
                     const blX = x, blY = baseY + stepSize;
