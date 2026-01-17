@@ -698,6 +698,9 @@
             const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
+            // Corner radius for rounded parallelograms
+            const cornerRadius = stepSize * 0.15;
+
             // Draw parallelograms in diagonal stripes (start further up to cover canvas)
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
                 for (let col = -cols; col < cols; col++) {
@@ -705,12 +708,22 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Draw parallelogram with VERTICAL sides and 45° diagonal top/bottom
+                    // Parallelogram corners
+                    const bl = { x: x, y: baseY + paraHeight };                    // bottom-left
+                    const tl = { x: x, y: baseY };                                 // top-left
+                    const tr = { x: x + stepSize, y: baseY - stepSize };           // top-right
+                    const br = { x: x + stepSize, y: baseY - stepSize + paraHeight }; // bottom-right
+
+                    // Draw rounded parallelogram using arcTo
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY + paraHeight);                          // bottom-left
-                    ctx.lineTo(x, baseY);                                       // top-left
-                    ctx.lineTo(x + stepSize, baseY - stepSize);                 // top-right (45° cut)
-                    ctx.lineTo(x + stepSize, baseY - stepSize + paraHeight);    // bottom-right
+                    ctx.moveTo(bl.x, bl.y - cornerRadius);
+                    ctx.arcTo(bl.x, bl.y, bl.x + cornerRadius, bl.y, cornerRadius);           // bottom-left corner
+                    ctx.lineTo(br.x - cornerRadius, br.y);
+                    ctx.arcTo(br.x, br.y, br.x, br.y - cornerRadius, cornerRadius);           // bottom-right corner
+                    ctx.lineTo(tr.x, tr.y + cornerRadius);
+                    ctx.arcTo(tr.x, tr.y, tr.x - cornerRadius, tr.y, cornerRadius);           // top-right corner
+                    ctx.lineTo(tl.x + cornerRadius, tl.y);
+                    ctx.arcTo(tl.x, tl.y, tl.x, tl.y + cornerRadius, cornerRadius);           // top-left corner
                     ctx.closePath();
                     ctx.fill();
                 }
@@ -894,6 +907,7 @@
             const rowsNeeded = Math.ceil(state.canvasHeight / Math.max(effectiveRowSpacing, 1)) + 20;
             const cols = Math.ceil((state.canvasWidth + state.canvasHeight) / stripeSpacing) + 8;
 
+            const cornerRadius = stepSize * 0.15;
             let paths = '';
 
             for (let row = -rowsNeeded; row < rowsNeeded; row++) {
@@ -901,13 +915,15 @@
                     const x = col * stripeSpacing + row * stepSize + offsetX;
                     const baseY = row * (rowSpacing + vGap) + offsetY;
 
-                    // Parallelogram with vertical sides and 45° diagonal
-                    const blX = x, blY = baseY + paraHeight;
-                    const tlX = x, tlY = baseY;
-                    const trX = x + stepSize, trY = baseY - stepSize;
-                    const brX = x + stepSize, brY = baseY - stepSize + paraHeight;
+                    // Parallelogram corners
+                    const bl = { x: x, y: baseY + paraHeight };
+                    const tl = { x: x, y: baseY };
+                    const tr = { x: x + stepSize, y: baseY - stepSize };
+                    const br = { x: x + stepSize, y: baseY - stepSize + paraHeight };
 
-                    paths += `<path d="M ${blX},${blY} L ${tlX},${tlY} L ${trX},${trY} L ${brX},${brY} Z"/>`;
+                    // SVG path with rounded corners using quadratic bezier curves
+                    const r = cornerRadius;
+                    paths += `<path d="M ${bl.x},${bl.y - r} Q ${bl.x},${bl.y} ${bl.x + r},${bl.y} L ${br.x - r},${br.y} Q ${br.x},${br.y} ${br.x},${br.y - r} L ${tr.x},${tr.y + r} Q ${tr.x},${tr.y} ${tr.x - r},${tr.y} L ${tl.x + r},${tl.y} Q ${tl.x},${tl.y} ${tl.x},${tl.y + r} Z"/>`;
                 }
             }
 
