@@ -1112,12 +1112,11 @@
 
             const effectiveRowSpacing = rowSpacing + vGap;
 
-            // Animation travel distance (approx screen height, exact multiple of pattern repeat)
-            const numRepeats = Math.max(1, Math.round(canvas.height / effectiveRowSpacing));
-            const travelDistance = numRepeats * effectiveRowSpacing;
+            // Animation travel distance = one tile (pattern tiles seamlessly at this interval)
+            const travelDistance = effectiveRowSpacing;
 
             // Need extra rows to cover animation offset
-            const rowsNeeded = Math.ceil((canvas.height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 5;
+            const rowsNeeded = Math.ceil(canvas.height / Math.max(effectiveRowSpacing, 1)) + 5;
             const cols = Math.ceil((canvas.width + canvas.height) / stripeSpacing) + 8;
 
             // Corner radius (like Cavalry's bevel radius of 30, scaled)
@@ -1154,21 +1153,17 @@
                 const normalizedIdx = visualColIdx / visibleCols;
                 const phaseOffset = normalizedIdx * maxPhaseOffset;
 
-                // Cycle progress (0 to 1)
+                // Cycle progress (0 to 1, wraps for seamless loop)
                 const cycleProgress = (state.animationTime + phaseOffset) % 1;
-
-                // Ping-pong: goes up (0→0.5) then back down (0.5→1) for seamless loop
-                const pingPong = cycleProgress < 0.5
-                    ? cycleProgress * 2
-                    : 2 - cycleProgress * 2;
 
                 // Apply easing
                 const easedProgress = cubicBezier(
-                    pingPong,
+                    cycleProgress,
                     state.easingP1.x, state.easingP1.y,
                     state.easingP2.x, state.easingP2.y
                 );
 
+                // Move up by one tile per cycle (pattern tiles seamlessly)
                 visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
                 return visualColumnOffsets[visualColIdx];
             }
