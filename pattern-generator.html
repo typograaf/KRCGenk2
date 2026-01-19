@@ -1266,6 +1266,129 @@
             }
         }
 
+        // Draw pattern to a specific context (used for export to avoid CSS transform issues)
+        function drawPatternToContext(targetCtx, width, height) {
+            // Fill background
+            targetCtx.fillStyle = '#' + state.secondaryColor;
+            targetCtx.fillRect(0, 0, width, height);
+
+            // Pattern parameters
+            const zoomFactor = state.zoom / 50;
+            const baseStepSize = 60;
+            const stepSize = baseStepSize * zoomFactor;
+            const stripeSpacing = Math.round(120 * zoomFactor);
+
+            const t = state.weight / 100;
+            const weightRatio = (5 + t * (17 - 5)) / 100;
+            const rowDist = 72 + t * (75 - 72);
+            const vGapVal = -50;
+
+            const rowSpacing = rowDist * zoomFactor;
+            const vGap = vGapVal * zoomFactor;
+            const paraHeight = stepSize * 3 * weightRatio;
+
+            const offsetX = (state.offsetX / 100) * stripeSpacing;
+            const offsetY = (state.offsetY / 100) * rowSpacing;
+
+            const effectiveRowSpacing = rowSpacing + vGap;
+            const travelDistance = effectiveRowSpacing * 10;
+
+            const rowsNeeded = Math.ceil((height + travelDistance) / Math.max(effectiveRowSpacing, 1)) + 10;
+            const cols = Math.ceil((width + height * 2) / stripeSpacing) + 10;
+
+            const cornerRadius = Math.max(3, stepSize * 0.05);
+            const overlap = stepSize * 0.02;
+            const round = (v) => Math.round(v);
+
+            const maxPhaseOffset = state.stagger / 700;
+            const visibleCols = Math.ceil(width / stripeSpacing) + 4;
+
+            const visualColumnOffsets = {};
+
+            function getVisualColumnOffset(visualColIdx) {
+                if (visualColumnOffsets[visualColIdx] !== undefined) {
+                    return visualColumnOffsets[visualColIdx];
+                }
+
+                if (state.animationTime === 0) {
+                    visualColumnOffsets[visualColIdx] = 0;
+                    return 0;
+                }
+
+                const normalizedIdx = visualColIdx / visibleCols;
+                const phaseOffset = normalizedIdx * maxPhaseOffset;
+                const cycleProgress = (state.animationTime + phaseOffset) % 1;
+
+                const easedProgress = cubicBezier(
+                    cycleProgress,
+                    state.easingP1.x, state.easingP1.y,
+                    state.easingP2.x, state.easingP2.y
+                );
+
+                visualColumnOffsets[visualColIdx] = -easedProgress * travelDistance;
+                return visualColumnOffsets[visualColIdx];
+            }
+
+            const buffer = travelDistance + stepSize * 3;
+            const polygons = [];
+
+            for (let row = -rowsNeeded; row < rowsNeeded; row++) {
+                for (let col = -cols; col < cols; col++) {
+                    const x = col * stripeSpacing + row * stepSize + offsetX;
+
+                    if (x + stepSize < -buffer || x > width + buffer) continue;
+
+                    const visualColIdx = Math.floor(x / stripeSpacing);
+                    const animY = getVisualColumnOffset(visualColIdx);
+                    const baseY = row * effectiveRowSpacing + offsetY + animY;
+
+                    if (baseY + paraHeight < -buffer || baseY - stepSize > height + buffer) continue;
+
+                    const poly = [[
+                        [round(x - overlap), round(baseY + paraHeight + overlap)],
+                        [round(x - overlap), round(baseY - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize - overlap)],
+                        [round(x + stepSize + overlap), round(baseY - stepSize + paraHeight + overlap)]
+                    ]];
+                    polygons.push(poly);
+                }
+            }
+
+            let united;
+            try {
+                united = polygonClipping.union(...polygons);
+            } catch (e) {
+                console.error('Boolean union failed:', e);
+                targetCtx.fillStyle = '#' + state.primaryColor;
+                targetCtx.beginPath();
+                for (const poly of polygons) {
+                    targetCtx.moveTo(poly[0][0][0], poly[0][0][1]);
+                    for (let i = 1; i < poly[0].length; i++) {
+                        targetCtx.lineTo(poly[0][i][0], poly[0][i][1]);
+                    }
+                    targetCtx.closePath();
+                }
+                targetCtx.fill();
+                return;
+            }
+
+            targetCtx.fillStyle = '#' + state.primaryColor;
+            targetCtx.beginPath();
+            for (const multiPolygon of united) {
+                for (let ringIdx = 0; ringIdx < multiPolygon.length; ringIdx++) {
+                    let ring = multiPolygon[ringIdx];
+                    ring = roundPolygonCorners(ring, cornerRadius);
+                    if (ring.length === 0) continue;
+                    targetCtx.moveTo(ring[0][0], ring[0][1]);
+                    for (let i = 1; i < ring.length; i++) {
+                        targetCtx.lineTo(ring[i][0], ring[i][1]);
+                    }
+                    targetCtx.closePath();
+                }
+            }
+            targetCtx.fill();
+        }
+
         function init() {
             drawPattern();
             scaleCanvasToFit();
@@ -1599,6 +1722,12 @@
                     animationFrameId = null;
                 }
 
+                // Create a dedicated export canvas to avoid CSS transform issues
+                const exportCanvas = document.createElement('canvas');
+                exportCanvas.width = videoWidth;
+                exportCanvas.height = videoHeight;
+                const exportCtx = exportCanvas.getContext('2d', { alpha: false });
+
                 const captureFrame = () => {
                     if (encoderFailed) {
                         return;
@@ -1659,11 +1788,11 @@
                     const linearProgress = frameNumber / totalFrames;
                     state.animationTime = linearProgress;
 
-                    // Draw the frame
-                    drawPattern();
+                    // Draw the frame to the dedicated export canvas
+                    drawPatternToContext(exportCtx, videoWidth, videoHeight);
 
-                    // Create video frame from canvas
-                    const frame = new VideoFrame(canvas, {
+                    // Create video frame from the export canvas (no CSS transforms)
+                    const frame = new VideoFrame(exportCanvas, {
                         timestamp: (frameNumber * 1_000_000) / 60
                     });
 
