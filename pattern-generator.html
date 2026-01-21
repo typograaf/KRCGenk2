@@ -1825,8 +1825,9 @@
 </svg>`;
         }
 
-        // Install App / Desktop Shortcut - hide if in iframe (app mode)
-        if (window.self !== window.top) {
+        // Install App / Desktop Shortcut - hide if in native app (app=1 param) or iframe
+        const urlParams = new URLSearchParams(window.location.search);
+        if (window.self !== window.top || urlParams.get('app') === '1') {
             document.getElementById('installPanel').style.display = 'none';
         } else {
             document.getElementById('installApp').addEventListener('click', () => {
