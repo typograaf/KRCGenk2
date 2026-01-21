@@ -1819,17 +1819,6 @@
 </svg>`;
         }
 
-        // Install App / Desktop Shortcut - hide if in iframe (app mode)
-        if (window.self !== window.top) {
-            document.getElementById('installPanel').style.display = 'none';
-        } else {
-            document.getElementById('installApp').addEventListener('click', () => {
-                const link = document.createElement('a');
-                link.href = 'https://github.com/typograaf/KRCGenk2/raw/main/KRCG-Backdrop-Generator.zip';
-                link.click();
-            });
-        }
-
         // Loading progress
         const loadingBar = document.getElementById('loadingBar');
         const loadingScreen = document.getElementById('loadingScreen');
