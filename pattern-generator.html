@@ -768,6 +768,12 @@
             </div>
         </div>
 
+        <!-- Install App -->
+        <div class="panel" id="installPanel">
+            <span class="control-label">Desktop Shortcut</span>
+            <button class="output-btn" id="installApp" style="width: 100%;">Add to Desktop</button>
+        </div>
+
     </div>
 
     <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
@@ -1817,6 +1823,17 @@
         ${pathsStr}
     </g>
 </svg>`;
+        }
+
+        // Install App / Desktop Shortcut - hide if in iframe (app mode)
+        if (window.self !== window.top) {
+            document.getElementById('installPanel').style.display = 'none';
+        } else {
+            document.getElementById('installApp').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = 'https://github.com/typograaf/KRCGenk2/raw/main/KRCG-Backdrop-Generator.zip';
+                link.click();
+            });
         }
 
         // Loading progress
