@@ -1826,21 +1826,9 @@
 
         // Install App / Desktop Shortcut
         document.getElementById('installApp').addEventListener('click', () => {
-            const webloc = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>URL</key>
-    <string>https://typograaf.github.io/KRCGenk2/pattern-generator.html</string>
-</dict>
-</plist>`;
-            const blob = new Blob([webloc], { type: 'application/x-apple-plist' });
-            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = 'KRCG Backdrop Generator.webloc';
-            link.href = url;
+            link.href = 'https://github.com/typograaf/KRCGenk2/raw/main/KRCG-Backdrop-Generator.zip';
             link.click();
-            URL.revokeObjectURL(url);
         });
 
         // Loading progress
