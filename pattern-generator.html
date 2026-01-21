@@ -720,7 +720,7 @@
         </div>
 
         <!-- Install App -->
-        <div class="panel">
+        <div class="panel" id="installPanel">
             <span class="control-label">Desktop Shortcut</span>
             <button class="output-btn" id="installApp" style="width: 100%;">Add to Desktop</button>
         </div>
@@ -1824,12 +1824,16 @@
 </svg>`;
         }
 
-        // Install App / Desktop Shortcut
-        document.getElementById('installApp').addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.href = 'https://github.com/typograaf/KRCGenk2/raw/main/KRCG-Backdrop-Generator.zip';
-            link.click();
-        });
+        // Install App / Desktop Shortcut - hide if in iframe (app mode)
+        if (window.self !== window.top) {
+            document.getElementById('installPanel').style.display = 'none';
+        } else {
+            document.getElementById('installApp').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = 'https://github.com/typograaf/KRCGenk2/raw/main/KRCG-Backdrop-Generator.zip';
+                link.click();
+            });
+        }
 
         // Loading progress
         const loadingBar = document.getElementById('loadingBar');
